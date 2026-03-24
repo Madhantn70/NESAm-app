@@ -1,0 +1,34 @@
+  ## default connection pool
+  spring:
+    datasource:
+      hikari:
+        connectionTimeout: 20000
+        maximumPoolSize: 5
+      ## PostgreSQL
+      url: ${DB_URL:jdbc:postgresql://localhost:5432/example}
+      username: ${DB_USERNAME:postgres}
+      password: ${DB_PASSWORD}
+    jpa:
+      properties.hibernate.dialect : org.hibernate.dialect.PostgreSQLDialect
+      hibernate.ddl-auto: none
+      hibernate.show-sql: true
+  #  autoconfigure:
+  #    exclude:
+  #      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+
+
+  jwt:
+    private.key: classpath:private_key.pem
+    public.key: classpath:test-pub.pem
+
+  springdoc:
+    api-docs:
+      enabled: true
+      path: /v3/api-docs
+    swagger-ui:
+      enabled: true
+      path: /swagger-ui.html
+    override-with-generic-response: false
+
+  server:
+    port: 9090
