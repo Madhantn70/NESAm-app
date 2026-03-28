@@ -26,10 +26,11 @@ public class MembershipService {
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public MembershipResponseDTO createMembership(String mobileNumber, MembershipRequestDTO dto) {
-        log.info("Creating membership for user: {}", mobileNumber);
+    public MembershipResponseDTO createMembership(String userUuidStr, MembershipRequestDTO dto) {
+        log.info("Creating membership for user UUID: {}", userUuidStr);
 
-        UserProfile user = userService.getUserEntityByMobileNumber(mobileNumber);
+        java.util.UUID id = java.util.UUID.fromString(userUuidStr);
+        UserProfile user = userService.getUserEntityById(id);
 
         Membership membership = new Membership();
         membership.setNesamId(dto.nesamId());
@@ -50,7 +51,7 @@ public class MembershipService {
         log.info("Membership created successfully: {}", saved.getNesamId());
 
         // Publish domain event
-        eventPublisher.publishEvent(new MemberRegisteredEvent(saved.getNesamId(), mobileNumber));
+        eventPublisher.publishEvent(new MemberRegisteredEvent(saved.getNesamId(), user.getMobileNumber()));
 
         return MembershipMapper.toResponse(saved);
     }

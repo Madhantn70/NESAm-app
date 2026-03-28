@@ -24,8 +24,8 @@ public class MembershipController {
             Authentication authentication,
             @RequestBody MembershipRequestDTO dto) {
 
-        String mobile = authentication.getName();
-        MembershipResponseDTO created = membershipService.createMembership(mobile, dto);
+        String userUuid = authentication.getName();
+        MembershipResponseDTO created = membershipService.createMembership(userUuid, dto);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 }

@@ -54,10 +54,11 @@ public class UserController {
     @Operation(security = @SecurityRequirement(name = "Bearer Authentication"))
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponseDTO> getCurrentUser(Authentication authentication) {
-        String mobile = authentication.getName();
-        log.info("JWT subject: {}", mobile);
+        String subject = authentication.getName();
+        log.info("JWT subject: {}", subject);
         try {
-            return ResponseEntity.ok(userService.getUserByMobileNumber(mobile));
+            UUID id = UUID.fromString(subject);
+            return ResponseEntity.ok(userService.getUserById(id));
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }

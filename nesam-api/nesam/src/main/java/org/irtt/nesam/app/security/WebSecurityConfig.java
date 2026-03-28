@@ -62,17 +62,14 @@ class WebSecurityConfig {
                         authorizeRequests ->
                         authorizeRequests.requestMatchers("/swagger-ui/**")
                             .permitAll()
-                        .requestMatchers("/v3/api-docs*/**")
+                        .requestMatchers("/v3/api-docs*/**", "/api/v1/public/**")
                             .permitAll()
                         .requestMatchers("/", "/home","/api/v1/users/register","/api/v1/users/ott/token","/api/v1/users/ott/login")
                             .permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(Customizer.withDefaults())
-                .oneTimeTokenLogin((ott) -> ott
-                        .showDefaultSubmitPage(false)
-                )
-                .csrf((csrf) -> csrf.ignoringRequestMatchers("/api/v1/users/ott/token","/api/v1/users/register","/api/v1/users/ott/login"))
+                .csrf((csrf) -> csrf.ignoringRequestMatchers("/api/v1/users/ott/token","/api/v1/users/register","/api/v1/users/ott/login","/api/v1/public/**"))
                 .oauth2ResourceServer((oauth2) -> oauth2
                         .jwt((jwt) -> jwt
                                 .jwtAuthenticationConverter(new TokenConverter())

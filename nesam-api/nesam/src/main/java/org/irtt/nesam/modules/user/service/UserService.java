@@ -60,12 +60,22 @@ public class UserService implements UserDetailsService {
                  .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    public UserProfile getUserEntityById(UUID id) {
+        return repository.findById(id)
+                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public UserProfile getUserEntityByEmail(String email) {
+        return repository.findByEmail(email)
+                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserProfile user = repository.findByMobileNumber(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with mobile: " + username));
+        UserProfile user = repository.findByEmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
         return new org.springframework.security.core.userdetails.User(
-                user.getMobileNumber(),
+                user.getEmail(),
                 "",
                 Collections.emptyList()
         );
