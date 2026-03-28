@@ -39,7 +39,7 @@ The NeSAM platform utilizes a traditional client-server architecture.
 
 ### How APIs are Wired & DB connects
 - The frontend Axios instances should point to `http://localhost:9090/api/v1/*`.
-- The backend uses HikariCP as a connection pool managed by Spring Data JPA to connect to PostgreSQL `jdbc:postgresql://localhost:5432/example`.
+- The backend uses HikariCP as a connection pool managed by Spring Data JPA to connect to PostgreSQL `jdbc:postgresql://localhost:5432/nesam_db`.
 
 ### How Environment Variables Work
 - The system heavily relies on Docker Compose variables and local text file secrets (`docker-test-password.txt`) for the database setup.

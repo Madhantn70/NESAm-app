@@ -39,6 +39,23 @@ dependencies {
 
 }
 
+def loadEnv(task) {
+	def envFile = file('.env')
+	if (envFile.exists()) {
+		envFile.readLines().each { line ->
+			def matcher = line =~ /^\s*([^#=]+)\s*=\s*(.*)$/
+			if (matcher.matches()) {
+				task.environment matcher.group(1).trim(), matcher.group(2).trim()
+			}
+		}
+	}
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
+	loadEnv(it)
+}
+
+tasks.named('bootRun') {
+	loadEnv(it)
 }

@@ -8,7 +8,7 @@ These variables govern how the local Postgres database and pgAdmin boot.
 
 | Variable Name | Value Used Locally | Description |
 |---|---|---|
-| `POSTGRES_DB` | `example` | The name of the initial database to create upon startup. |
+| `POSTGRES_DB` | `nesam_db` | The name of the initial database to create upon startup. |
 | `POSTGRES_PASSWORD_FILE` | `/run/secrets/db-password` | Binds the Docker Secret representing the Postgres superuser password, preventing plaintext usage down the configuration tree. |
 | `PGADMIN_DEFAULT_EMAIL` | `admin@example.com` | Default admin email login for pgAdmin4. |
 | `PGADMIN_DEFAULT_PASSWORD` | `secretpassword` | Default admin password for pgAdmin4 UI. |
