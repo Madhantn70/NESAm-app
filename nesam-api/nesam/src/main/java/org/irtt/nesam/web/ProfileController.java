@@ -7,13 +7,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.irtt.nesam.data.models.UserProfile;
 import org.irtt.nesam.data.models.dto.UserProfileDTO;
 import org.irtt.nesam.data.repositories.ProfileRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.ott.GenerateOneTimeTokenRequest;
 import org.springframework.security.authentication.ott.OneTimeToken;
 import org.springframework.security.authentication.ott.OneTimeTokenAuthenticationToken;
 import org.springframework.security.authentication.ott.OneTimeTokenService;
 import org.springframework.security.core.Authentication; // ✅ ADD THIS
+import org.irtt.nesam.services.UserProfileService;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -31,27 +33,19 @@ import java.util.UUID;
 @Slf4j
 public class ProfileController {
 
+    private final UserProfileService userService;
     private final ProfileRepository userRepository;
-
-    @Autowired
-    JwtEncoder encoder;
-
-    @Autowired
-    OneTimeTokenService oneTimeTokenService;
+    private final JwtEncoder encoder;
+    private final OneTimeTokenService oneTimeTokenService;
 
     @PostMapping("/register")
     public ResponseEntity<UserProfile> createUser(@Valid @RequestBody UserProfileDTO dto) {
-        UserProfile user = new UserProfile();
-        user.setMobileNumber(dto.mobileNumber());
-        user.setFullName(dto.fullName());
-        user.setEmail(dto.email());
-        user.setIrttaaId(dto.irttaaId());
         try {
-            UserProfile profile = userRepository.save(user);
+            UserProfile profile = userService.registerUser(dto);
             return new ResponseEntity<>(profile, HttpStatus.CREATED);
         } catch (Exception e) {
-            log.error("error while creating ", e);
-            throw new RuntimeException(e);
+            log.error("Error during registration: ", e);
+            throw e;
         }
     }
 
@@ -69,15 +63,11 @@ public class ProfileController {
         return userRepository.findAll();
     }
 
-    // 🔥 NEW ENDPOINT (IMPORTANT)
     @Operation(security = @SecurityRequirement(name = "Bearer Authentication"))
     @GetMapping("/me")
     public ResponseEntity<UserProfile> getCurrentUser(Authentication authentication) {
-
         String mobile = authentication.getName(); // comes from JWT
-
         log.info("JWT subject: {}", authentication.getName());
-
         return userRepository.findByMobileNumber(mobile)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -94,24 +84,43 @@ public class ProfileController {
         return ResponseEntity.ok("OK");
     }
 
+    @PostMapping("/ott/token")
+    @Operation(summary = "Generate and print OTT for a mobile number")
+    public ResponseEntity<String> generateToken(@RequestBody String mobileNumber) {
+        log.info("OTT token request received for: {}", mobileNumber);
+        log.info("Generating OTT for mobile: {}", mobileNumber);
+        
+        // Use Spring Security's OneTimeTokenService
+        OneTimeToken token = oneTimeTokenService.generate(new GenerateOneTimeTokenRequest(mobileNumber, Duration.ofMinutes(10)));
+        
+        log.info("========================================");
+        log.info("Generated OTT token: {}", token.getTokenValue());
+        log.info("========================================");
+        
+        return ResponseEntity.ok("OTP generated and printed to console");
+    }
+
     @PostMapping("/ott/login")
-    public ResponseEntity<String> authenticateToken(
-            @RequestBody String token) {
-        OneTimeToken oneTimeToken = oneTimeTokenService.consume(
-                new OneTimeTokenAuthenticationToken(token));
+    public ResponseEntity<String> authenticateToken(@RequestBody String token) {
+        try {
+            OneTimeToken oneTimeToken = oneTimeTokenService.consume(new OneTimeTokenAuthenticationToken(token));
 
-        Instant now = Instant.now();
-        long expiry = 36000L;
+            Instant now = Instant.now();
+            long expiry = 36000L;
 
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("self")
-                .issuedAt(now)
-                .expiresAt(now.plusSeconds(expiry))
-                .subject(oneTimeToken.getUsername()) // mobile number
-                .claim("scope", "testing-scope")
-                .build();
+            JwtClaimsSet claims = JwtClaimsSet.builder()
+                    .issuer("self")
+                    .issuedAt(now)
+                    .expiresAt(now.plusSeconds(expiry))
+                    .subject(oneTimeToken.getUsername()) // mobile number
+                    .claim("scope", "USER")
+                    .build();
 
-        return ResponseEntity.ok(
-                this.encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue());
+            log.info("JWT issued successfully for: {}", oneTimeToken.getUsername());
+            return ResponseEntity.ok(this.encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue());
+        } catch (Exception e) {
+            log.error("Login failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("401 Invalid or expired token");
+        }
     }
 }

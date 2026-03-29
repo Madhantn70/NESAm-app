@@ -1,0 +1,63 @@
+﻿> Task :compileJava
+> Task :processResources
+> Task :classes
+> Task :resolveMainClassName
+
+> Task :bootRun
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.2)
+
+2026-03-29T12:06:23.701Z  INFO 16448 --- [           main] org.irtt.nesam.NesamApplication          : Starting NesamApplication using Java 21.0.10 with PID 16448 (C:\NESAm-app\nesam-api\nesam\build\classes\java\main started by maddy in C:\NESAm-app\nesam-api\nesam)
+2026-03-29T12:06:23.704Z  INFO 16448 --- [           main] org.irtt.nesam.NesamApplication          : No active profile set, falling back to 1 default profile: "default"
+2026-03-29T12:06:24.496Z  INFO 16448 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-29T12:06:24.550Z  INFO 16448 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 45 ms. Found 3 JPA repository interfaces.
+2026-03-29T12:06:24.985Z  INFO 16448 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 9090 (http)
+2026-03-29T12:06:25.008Z  INFO 16448 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-29T12:06:25.008Z  INFO 16448 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.15]
+2026-03-29T12:06:25.062Z  INFO 16448 --- [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 1312 ms
+2026-03-29T12:06:25.193Z  INFO 16448 --- [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-03-29T12:06:25.239Z  INFO 16448 --- [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.1.Final
+2026-03-29T12:06:25.638Z  INFO 16448 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-29T12:06:25.666Z  INFO 16448 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-29T12:06:25.791Z  INFO 16448 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@2052f095
+2026-03-29T12:06:25.792Z  INFO 16448 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-29T12:06:25.818Z  WARN 16448 --- [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-03-29T12:06:25.845Z  INFO 16448 --- [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/example?options=-c%20TimeZone=UTC]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 16.13
+	Default catalog/schema: example/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-03-29T12:06:26.764Z  INFO 16448 --- [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-29T12:06:26.857Z  INFO 16448 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-29T12:06:26.935Z  INFO 16448 --- [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-29T12:06:27.240Z  WARN 16448 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-03-29T12:06:27.303Z  INFO 16448 --- [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name userProfileService
+2026-03-29T12:06:27.775Z  INFO 16448 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 9090 (http) with context path '/'
+2026-03-29T12:06:27.779Z  INFO 16448 --- [           main] org.irtt.nesam.NesamApplication          : Started NesamApplication in 4.46 seconds (process running for 4.809)
+========================================
+Database connection success: jdbc:postgresql://localhost:5432/example?options=-c%20TimeZone=UTC
+Application startup success
+Tomcat running on port: 9090
+========================================
+2026-03-29T12:07:02.167Z  INFO 16448 --- [nio-9090-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-03-29T12:07:02.168Z  INFO 16448 --- [nio-9090-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-03-29T12:07:02.168Z  INFO 16448 --- [nio-9090-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2026-03-29T12:07:02.314Z  INFO 16448 --- [nio-9090-exec-1] o.i.nesam.services.UserProfileService    : Registering user: 8667602881
+2026-03-29T12:07:10.707Z  INFO 16448 --- [nio-9090-exec-3] org.irtt.nesam.web.ProfileController     : Generating OTT for mobile: 8667602881
+2026-03-29T12:07:10.707Z  INFO 16448 --- [nio-9090-exec-3] org.irtt.nesam.web.ProfileController     : ========================================
+2026-03-29T12:07:10.707Z  INFO 16448 --- [nio-9090-exec-3] org.irtt.nesam.web.ProfileController     : GENERTED OTP FOR 8667602881: a6d3e999-5b50-4347-a040-d0d9ed807cd4
+2026-03-29T12:07:10.707Z  INFO 16448 --- [nio-9090-exec-3] org.irtt.nesam.web.ProfileController     : ========================================

@@ -1,4 +1,4 @@
 export enum LoginStep {
-  ENTER_EMAIL = "ENTER_EMAIL",
+  ENTER_MOBILE = "ENTER_MOBILE",
   ENTER_OTP = "ENTER_OTP",
 }

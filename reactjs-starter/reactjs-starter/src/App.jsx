@@ -8,6 +8,9 @@ import { MemberDashboardPage } from './screens/member/MemberDashboardPage';
 import { MemberActiveDfcPage } from './screens/member/MemberActiveDfcPage';
 import { MemberImpactPage } from './screens/member/MemberImpactPage';
 
+import AdminDashboard from './pages/AdminDashboard';
+import ProtectedRoute from './components/ProtectedRoute';
+
 function App() {
   return (
     <Router>
@@ -18,6 +21,8 @@ function App() {
         <Route path="/member" element={<MemberDashboardPage />} />
         <Route path="/member/active-dfc" element={<MemberActiveDfcPage />} />
         <Route path="/member/impact" element={<MemberImpactPage />} />
+        <Route path="/dashboard" element={<ProtectedRoute><MemberDashboardPage /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         {/* Wildcard redirects to exact home match */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

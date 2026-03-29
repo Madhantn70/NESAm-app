@@ -1,49 +1,50 @@
 import { useState } from "react";
 import { LoginStep } from "../../../constants/auth";
-import { authApi } from "../../../api/authApi";
-import { mapAuthResponseToViewState } from "../../../utils/mappers/authMapper";
-import { AuthView } from "../../../models/view/auth";
+import { requestToken, loginWithToken } from "../../../services/auth";
 
 export const useLoginViewModel = () => {
-  const [email, setEmail] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [otp, setOtp] = useState("");
-  const [step, setStep] = useState<LoginStep>(LoginStep.ENTER_EMAIL);
+  const [step, setStep] = useState<LoginStep>(LoginStep.ENTER_MOBILE);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   const handleSendOTP = async () => {
-    if (!email.includes("@") || !email.includes(".")) {
-      setError("Please enter a valid email address");
+    if (mobileNumber.length < 10) {
+      setError("Please enter a valid mobile number");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      await requestToken(mobileNumber);
+      setStep(LoginStep.ENTER_OTP);
+      setMessage("OTP generated! Check backend console.");
+    } catch (err: any) {
+      setError(err || "Failed to send OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (otp.length < 4) {
+      setError("Please enter the token");
       return;
     }
 
     setLoading(true);
     setError(null);
     try {
-      await authApi.login({ email });
-      setStep(LoginStep.ENTER_OTP);
+      const jwt = await loginWithToken(otp);
+      localStorage.setItem("token", jwt);
+      return { isAuthenticated: true };
     } catch (err: any) {
-      setError(err?.message || "Failed to send OTP");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async (): Promise<AuthView | null> => {
-    if (otp.length !== 6) {
-      setError("Please enter a 6-digit OTP");
-      return null;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await authApi.verifyOtp({ email, otp });
-      const viewState = mapAuthResponseToViewState(response);
-      return viewState;
-    } catch (err: any) {
-      setError(err?.message || "Failed to verify OTP");
-      return null;
+      setError(err || "Invalid or expired token");
+      return { isAuthenticated: false };
     } finally {
       setLoading(false);
     }
@@ -55,13 +56,14 @@ export const useLoginViewModel = () => {
   };
 
   return {
-    email,
-    setEmail,
+    mobileNumber,
+    setMobileNumber,
     otp,
     setOtp,
     step,
     loading,
     error,
+    message,
     handleSendOTP,
     handleVerifyOTP,
     handleResendOTP,
