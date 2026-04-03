@@ -1,0 +1,1173 @@
+openapi: 3.0.3
+
+info:
+  title: NESAm Registration API
+  description: |
+    ## NIT Erode Students Alumni Members — Registration Flow API
+
+    This specification covers the **7 backend endpoints** that implement the complete
+    member registration wizard at `/register` on the NESAm frontend.
+
+    ---
+
+    ### How the flow works
+
+    The registration wizard moves a prospective member through these stages:
+
+    1. **Email entry** — The member types their email and clicks "Verify"
+    2. **Eligibility gate** — Backend checks for a pending application, then checks the alumni master
+    3. **OTP delivery** — A one-time token is emailed if the user is eligible
+    4. **OTP verification** — The user enters their code; backend issues a REGISTRATION JWT
+    5. **Wizard steps** — Contact details, date of birth (triggers fee preview), nominee details
+    6. **Auto-save** — Each step is persisted so the wizard can be resumed after a browser close
+    7. **Final submit** — Atomic transaction creates the user, membership, payment record, and nominees
+
+    ---
+
+    ### Authentication model
+
+    There are **two distinct JWT scopes** in this system:
+
+    | Scope | Issued by | Valid for | Sub claim |
+    |-------|-----------|-----------|-----------|
+    | `REGISTRATION` | `POST /verify-otp` | APIs 4–7 (wizard steps) | Email address |
+    | `MEMBER` | Login endpoint (not here) | Member dashboard, etc. | `nesam_user_id` (UUID) |
+
+    A `REGISTRATION` JWT cannot access member endpoints.
+    A `MEMBER` JWT cannot access registration endpoints.
+
+    After a successful `POST /submit`, the frontend redirects to `/login` so the user
+    can obtain a full `MEMBER` JWT through the normal login flow.
+
+    ---
+
+    ### Eligibility decision order
+
+    ```
+    Email received
+      ↓
+    1. Check nesam_applications WHERE email_id = :email AND status = 'STARTED'
+         → Found     → return PENDING_APPLICATION (ask user to resume or start fresh)
+         → Not found → continue
+      ↓
+    2. Check aa_alumni_master WHERE email_id = :email
+         → Not found                          → return NOT_FOUND (no OTP sent)
+         → Found, membership_type = REGISTERED → return NOT_A_MEMBER (no OTP sent)
+         → Found, membership_type IN (LIFE, PATRON) → return ELIGIBLE (send OTP)
+    ```
+
+    ---
+
+    ### Error format
+
+    All error responses follow RFC 7807 Problem Details:
+
+    ```json
+    {
+      "type": "https://nesam.org/problems/validation-error",
+      "title": "Validation Error",
+      "status": 422,
+      "detail": "dateOfBirth must be in the past",
+      "instance": "/api/v1/public/registration/fee-preview"
+    }
+    ```
+
+  version: 2.1.0
+  contact:
+    name: NESAm Development Team
+    email: dev@nesam.org
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://api.nesam.org/api/v1
+    description: Production server
+
+tags:
+  - name: Registration — Public
+    description: |
+      Endpoints that require no authentication.
+      These handle the email gate, OTP delivery, and OTP verification.
+  - name: Registration — JWT Protected
+    description: |
+      Endpoints that require a valid REGISTRATION-scoped JWT in the Authorization header.
+      Obtain the JWT from `POST /registration/verify-otp`.
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Enter the REGISTRATION-scoped JWT obtained from `POST /registration/verify-otp`.
+
+        Example: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+
+        **Important:** This JWT has scope=REGISTRATION. It cannot be used for member
+        endpoints and expires after 24 hours.
+
+  schemas:
+
+    # ─── Shared primitives ───────────────────────────────────────────────────
+
+    EmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          example: kish.arumugam@example.com
+          description: The alumni's registered email address
+
+    ProblemDetail:
+      type: object
+      description: RFC 7807 Problem Details object returned for all errors
+      properties:
+        type:
+          type: string
+          format: uri
+          example: https://nesam.org/problems/validation-error
+        title:
+          type: string
+          example: Validation Error
+        status:
+          type: integer
+          example: 422
+        detail:
+          type: string
+          example: Email address is required
+        instance:
+          type: string
+          example: /api/v1/public/registration/initiate
+
+    # ─── API 1 ───────────────────────────────────────────────────────────────
+
+    InitiateRegistrationResponse:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: string
+          enum: [ELIGIBLE, NOT_FOUND, NOT_A_MEMBER, PENDING_APPLICATION]
+          description: |
+            The result of the eligibility check.
+
+            - `ELIGIBLE` — Email found in alumni master with LIFE or PATRON membership.
+              Frontend should immediately call `POST /send-otp`.
+            - `NOT_FOUND` — Email not found in either nesam_applications or aa_alumni_master.
+              Frontend shows "Alumni Record Not Found" message. No OTP is sent.
+            - `NOT_A_MEMBER` — Email found in alumni master but membership_type = REGISTERED.
+              Frontend shows "Association Membership Required" message. No OTP is sent.
+            - `PENDING_APPLICATION` — Email has an in-progress application (status = STARTED).
+              Frontend shows "Resume or start fresh" modal. Frontend should call `POST /send-otp`.
+          example: ELIGIBLE
+        pendingApplicationId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Set when status = PENDING_APPLICATION. The application ID the frontend stores for subsequent API calls.
+          example: 123e4567-e89b-12d3-a456-426614174000
+        pendingApplicationStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the pending application was started. Used by the frontend to show "started 3 days ago" in the modal.
+          example: 2026-01-15T10:00:00Z
+        message:
+          type: string
+          description: Human-readable explanation for the UI to display. Never expose raw field names or DB details.
+          example: You are eligible. A verification code will be sent to your email.
+
+    # ─── API 2 ───────────────────────────────────────────────────────────────
+
+    SendOtpResponse:
+      type: object
+      required: [success, maskedEmail, expiresInSeconds]
+      properties:
+        success:
+          type: boolean
+          example: true
+        maskedEmail:
+          type: string
+          description: The email address with characters masked for display in the UI (e.g. in "OTP sent to me***@example.com")
+          example: ki***@example.com
+        expiresInSeconds:
+          type: integer
+          description: How many seconds the OTP is valid for. Frontend uses this to drive the countdown timer.
+          example: 600
+
+    # ─── API 3 ───────────────────────────────────────────────────────────────
+
+    VerifyOtpResponse:
+      type: object
+      required: [token, email, applicationStatus]
+      properties:
+        token:
+          type: string
+          description: |
+            REGISTRATION-scoped JWT. Store in localStorage. Send as `Authorization: Bearer <token>`
+            on all subsequent requests (APIs 4–7). Valid for 24 hours.
+            Claims: sub=email, scope=REGISTRATION, exp=now+24h.
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJraXNoQGV4YW1wbGUuY29tIiwic2NvcGUiOiJSRUdJU1RSQVRJTyIsImV4cCI6MTcxMjM0NTY3OH0.signature
+        email:
+          type: string
+          format: email
+          description: The verified email address (extracted from the OTT)
+          example: kish.arumugam@example.com
+        applicationStatus:
+          type: string
+          enum: [PENDING_APPLICATION, NEW]
+          description: |
+            Tells the frontend whether to load pre-filled data or start blank.
+            - `PENDING_APPLICATION` — load form data from `GET /prefill` (source will be PENDING_APPLICATION)
+            - `NEW` — load base alumni data from `GET /prefill` (source will be ALUMNI_MASTER)
+          example: NEW
+        pendingApplicationId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The existing application ID when applicationStatus = PENDING_APPLICATION. Pass this in PATCH /details requests.
+          example: null
+
+    # ─── API 4 ───────────────────────────────────────────────────────────────
+
+    PrefillResponse:
+      type: object
+      required: [source, alumni]
+      properties:
+        source:
+          type: string
+          enum: [PENDING_APPLICATION, ALUMNI_MASTER]
+          description: Which source the savedContact/savedDateOfBirth/savedNominee fields came from.
+          example: ALUMNI_MASTER
+        applicationId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Set when source = PENDING_APPLICATION. The frontend ViewModel stores this and sends it in all PATCH /details calls.
+          example: null
+        alumni:
+          $ref: '#/components/schemas/AlumniInfo'
+        savedContact:
+          $ref: '#/components/schemas/SavedContact'
+          nullable: true
+        savedDateOfBirth:
+          type: string
+          format: date
+          nullable: true
+          description: Pre-filled date of birth. From alumni master if fresh, from application details if resuming.
+          example: 1990-05-15
+        savedGender:
+          type: string
+          nullable: true
+          enum: [MALE, FEMALE, OTHER]
+          example: MALE
+        savedNominee:
+          $ref: '#/components/schemas/SavedNominee'
+          nullable: true
+
+    AlumniInfo:
+      type: object
+      required: [fullName, email, graduatingYear, isPatron, isFounding]
+      properties:
+        fullName:
+          type: string
+          description: The member's full name as recorded in the alumni master.
+          example: Kish Arumugam
+        email:
+          type: string
+          format: email
+          example: kish.arumugam@example.com
+        graduatingYear:
+          type: integer
+          description: The year the member graduated from NIT Erode.
+          example: 2012
+        department:
+          type: string
+          nullable: true
+          description: The department/stream from the alumni record.
+          example: Mechanical Engineering
+        isPatron:
+          type: boolean
+          description: True when aa_alumni_master.membership_type = PATRON. Affects fee calculation.
+          example: false
+        isFounding:
+          type: boolean
+          description: |
+            True when today's date is within the founding window.
+            Computed as: today <= (PROGRAM_LAUNCH_DATE + FOUNDING_WINDOW_DAYS) from system_parameters.
+            Affects fee calculation — founding members get a discount.
+          example: true
+
+    SavedContact:
+      type: object
+      properties:
+        mobile:
+          type: string
+          example: "9876543210"
+        line1:
+          type: string
+          example: 42 Main Street
+        line2:
+          type: string
+          nullable: true
+          example: Flat 3B
+        city:
+          type: string
+          example: Erode
+        state:
+          type: string
+          example: Tamil Nadu
+        postalCode:
+          type: string
+          example: "638316"
+        country:
+          type: string
+          example: India
+
+    SavedNominee:
+      type: object
+      properties:
+        nomineeName:
+          type: string
+          example: Priya K
+        nomineeRelationship:
+          type: string
+          enum: [SPOUSE, SON, DAUGHTER, FATHER, MOTHER, BROTHER, SISTER, OTHER]
+          example: SPOUSE
+        nomineeEmail:
+          type: string
+          format: email
+          nullable: true
+          example: priya@example.com
+        nomineeMobile:
+          type: string
+          nullable: true
+          example: "9876500000"
+
+    # ─── API 5 ───────────────────────────────────────────────────────────────
+
+    FeePreviewResponse:
+      type: object
+      required: [completedAge, ageSlab, baseMembershipFee, discountPercent, discountAmount, finalMembershipFee, dfcPerEvent, advanceDfcMultiplier, advanceDfc, totalPayable, tierApplied, slabSource]
+      properties:
+        completedAge:
+          type: integer
+          description: Completed age in years as of today, derived from dateOfBirth.
+          example: 35
+        ageSlab:
+          type: string
+          description: The display label of the matched fee slab row.
+          example: 31 - 35 Years
+        baseMembershipFee:
+          type: number
+          format: decimal
+          description: The fee from the matched slab before any discounts are applied.
+          example: 5000.00
+        discountPercent:
+          type: number
+          format: decimal
+          description: The discount percentage applied (0 if REGULAR tier).
+          example: 10.00
+        discountAmount:
+          type: number
+          format: decimal
+          description: The rupee amount of the discount.
+          example: 500.00
+        finalMembershipFee:
+          type: number
+          format: decimal
+          description: baseMembershipFee minus discountAmount. This is what the member pays for their membership.
+          example: 4500.00
+        dfcPerEvent:
+          type: number
+          format: decimal
+          description: The DFC (Death/Family Care) rate per event, from the age-matched DFC slab.
+          example: 400.00
+        advanceDfcMultiplier:
+          type: integer
+          description: How many advance DFC events are collected at registration. Read from system_parameters.ADVANCE_DFC_MULTIPLIER.
+          example: 5
+        advanceDfc:
+          type: number
+          format: decimal
+          description: dfcPerEvent × advanceDfcMultiplier. This is held as a security deposit for future DFC events.
+          example: 2000.00
+        totalPayable:
+          type: number
+          format: decimal
+          description: finalMembershipFee + advanceDfc. This is the total amount the user sees on the payment screen.
+          example: 6500.00
+        tierApplied:
+          type: string
+          enum: [REGULAR, PATRON, FOUNDING, FOUNDING_PATRON]
+          description: Which membership tier the discount was computed for.
+          example: FOUNDING
+        slabSource:
+          type: string
+          enum: [AGE, GRADUATION_YEAR]
+          description: |
+            For PATRON and FOUNDING_PATRON members, the system compares the age-based fee slab
+            and the graduation-year-based fee slab and applies whichever is lower (business rule FR-MA-05).
+            This field tells the frontend which source was used so it can display the right explanation.
+          example: AGE
+
+    # ─── API 6 ───────────────────────────────────────────────────────────────
+
+    SaveDetailsRequest:
+      type: object
+      description: All fields are optional. Only include fields that have changed or been filled in this step.
+      properties:
+        applicationId:
+          type: string
+          format: uuid
+          nullable: true
+          description: |
+            Null on the very first call (the backend creates a new application and returns the ID).
+            Include on all subsequent calls. The frontend ViewModel stores this after the first response.
+          example: 123e4567-e89b-12d3-a456-426614174000
+        mobile:
+          type: string
+          pattern: '^[6-9]\d{9}$'
+          description: 10-digit Indian mobile number starting with 6, 7, 8, or 9.
+          example: "9876543210"
+        line1:
+          type: string
+          example: 42 Main Street
+        line2:
+          type: string
+          nullable: true
+          example: Flat 3B
+        city:
+          type: string
+          example: Erode
+        state:
+          type: string
+          example: Tamil Nadu
+        postalCode:
+          type: string
+          example: "638316"
+        country:
+          type: string
+          example: India
+        dateOfBirth:
+          type: string
+          format: date
+          example: "1990-05-15"
+        gender:
+          type: string
+          enum: [MALE, FEMALE, OTHER]
+          example: MALE
+        nomineeName:
+          type: string
+          example: Priya K
+        nomineeRelationship:
+          type: string
+          enum: [SPOUSE, SON, DAUGHTER, FATHER, MOTHER, BROTHER, SISTER, OTHER]
+          example: SPOUSE
+        nomineeEmail:
+          type: string
+          format: email
+          nullable: true
+          example: priya@example.com
+        nomineeMobile:
+          type: string
+          nullable: true
+          example: "9876500000"
+
+    SaveDetailsResponse:
+      type: object
+      required: [applicationId, status, savedAt]
+      properties:
+        applicationId:
+          type: string
+          format: uuid
+          description: The application ID. Store this in the frontend ViewModel if it wasn't already set.
+          example: 123e4567-e89b-12d3-a456-426614174000
+        status:
+          type: string
+          example: STARTED
+        savedAt:
+          type: string
+          format: date-time
+          example: 2026-03-15T10:30:00Z
+
+    # ─── API 7 ───────────────────────────────────────────────────────────────
+
+    SubmitApplicationRequest:
+      type: object
+      required: [applicationId, selfDeclarationAccepted, nominees]
+      properties:
+        applicationId:
+          type: string
+          format: uuid
+          description: The application ID returned from PATCH /details.
+          example: 123e4567-e89b-12d3-a456-426614174000
+        selfDeclarationAccepted:
+          type: boolean
+          description: Must be true. The user has acknowledged the self-declaration on the summary screen.
+          example: true
+        nominees:
+          type: array
+          minItems: 1
+          description: |
+            One or more nominees. The sum of all percentageShare values must equal 100.00
+            (tolerance ±0.01 allowed for floating point rounding).
+          items:
+            $ref: '#/components/schemas/NomineeRequest'
+        paymentReference:
+          type: string
+          description: Payment gateway reference. Use "MOCK-PAY-001" for development/testing.
+          example: MOCK-PAY-001
+
+    NomineeRequest:
+      type: object
+      required: [name, relationship, percentageShare]
+      properties:
+        name:
+          type: string
+          example: Priya K
+        relationship:
+          type: string
+          enum: [SPOUSE, SON, DAUGHTER, FATHER, MOTHER, BROTHER, SISTER, OTHER]
+          example: SPOUSE
+        percentageShare:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 100.00
+          description: What percentage of benefits this nominee receives. All nominee shares must sum to 100.
+          example: 100.00
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: priya@example.com
+        mobile:
+          type: string
+          nullable: true
+          example: "9876500000"
+
+    SubmitResponse:
+      type: object
+      required: [success, membershipNumber, membershipStatus, nesamTier, totalPaid, message]
+      properties:
+        success:
+          type: boolean
+          example: true
+        membershipNumber:
+          type: string
+          description: |
+            Unique membership number in format NES-YYYY-NNN.
+            YYYY = enrollment year, NNN = zero-padded sequence for that year.
+          example: NES-2026-001
+        membershipStatus:
+          type: string
+          enum: [ACTIVE]
+          description: Always ACTIVE on successful submission in the current MVP.
+          example: ACTIVE
+        nesamTier:
+          type: string
+          enum: [REGULAR, PATRON, FOUNDING, FOUNDING_PATRON]
+          example: FOUNDING
+        totalPaid:
+          type: number
+          format: decimal
+          description: The total amount recorded in nesam_application_payments.
+          example: 6500.00
+        message:
+          type: string
+          description: Welcome message for display on the success screen.
+          example: Welcome to NESAm! Your membership NES-2026-001 is now active.
+
+paths:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # API 1 — Initiate
+  # ─────────────────────────────────────────────────────────────────────────
+  /public/registration/initiate:
+    post:
+      tags: [Registration — Public]
+      operationId: initiateRegistration
+      summary: Email eligibility check — the registration gate
+      description: |
+        **The first step of the registration flow.** The user types their email and clicks "Verify."
+
+        This endpoint checks two tables in strict order and returns a status code that
+        tells the frontend exactly which screen to show next. It never sends an OTP —
+        that is handled by `POST /send-otp`.
+
+        **Decision order:**
+        1. Check `nesam_applications` for a pending (STARTED) application with this email
+           → If found: return `PENDING_APPLICATION` and stop (no alumni lookup)
+        2. Check `aa_alumni_master` for the email
+           → Not found: return `NOT_FOUND`
+           → Found, membership_type = REGISTERED: return `NOT_A_MEMBER`
+           → Found, membership_type = LIFE or PATRON: return `ELIGIBLE`
+
+        **Always returns HTTP 200.** Returning 404 or 403 from this endpoint would
+        allow an attacker to enumerate which email addresses are in the system.
+
+        **Tables read:** `nesam_applications`, `aa_alumni_master`
+        **Tables written:** None
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailRequest'
+            examples:
+              eligible_member:
+                summary: Email belonging to an eligible LIFE/PATRON member
+                value:
+                  email: kish.arumugam@example.com
+              unknown_email:
+                summary: Email not in the alumni master at all
+                value:
+                  email: nobody@example.com
+              registered_only:
+                summary: Email found but member is REGISTERED type (not LIFE/PATRON)
+                value:
+                  email: registered.only@example.com
+              pending_application:
+                summary: Email with an existing in-progress application
+                value:
+                  email: pending.member@example.com
+      responses:
+        '200':
+          description: Eligibility check completed. See `status` field for result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitiateRegistrationResponse'
+              examples:
+                eligible:
+                  summary: Eligible — frontend calls POST /send-otp next
+                  value:
+                    status: ELIGIBLE
+                    pendingApplicationId: null
+                    pendingApplicationStartedAt: null
+                    message: "You are eligible. A verification code will be sent to your email."
+                not_found:
+                  summary: Not found — frontend shows alumni not found message
+                  value:
+                    status: NOT_FOUND
+                    pendingApplicationId: null
+                    pendingApplicationStartedAt: null
+                    message: "Alumni Record Not Found. We could not find your details in the Alumni database. Please register with the Alumni Association first."
+                not_a_member:
+                  summary: Registered-only member — frontend shows membership required message
+                  value:
+                    status: NOT_A_MEMBER
+                    pendingApplicationId: null
+                    pendingApplicationStartedAt: null
+                    message: "Association Membership Required. Your alumni record exists but you are not yet a Life or Patron member of the association."
+                pending_application:
+                  summary: Pending application — frontend shows resume modal
+                  value:
+                    status: PENDING_APPLICATION
+                    pendingApplicationId: "123e4567-e89b-12d3-a456-426614174000"
+                    pendingApplicationStartedAt: "2026-01-15T10:00:00Z"
+                    message: "You have an application in progress. You can resume where you left off or start a fresh application."
+        '422':
+          description: Email field is missing or malformed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: https://nesam.org/problems/validation-error
+                title: Validation Error
+                status: 422
+                detail: Email must be a valid email address
+                instance: /api/v1/public/registration/initiate
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # API 2 — Send OTP
+  # ─────────────────────────────────────────────────────────────────────────
+  /public/registration/send-otp:
+    post:
+      tags: [Registration — Public]
+      operationId: sendOtp
+      summary: Send OTP to email address
+      description: |
+        **Generates and sends a one-time token to the given email.**
+
+        Called in two scenarios:
+        1. Immediately after `POST /initiate` returns `ELIGIBLE` or `PENDING_APPLICATION`
+        2. When the user clicks "Resend OTP" (the frontend shows a countdown timer driven by `expiresInSeconds`)
+
+        Both scenarios use the same endpoint. The OTT service automatically invalidates
+        any existing token for this email and generates a new one.
+
+        **Rate limited:** Maximum 3 calls per email address per 10 minutes.
+        Exceeding this returns HTTP 429.
+
+        In development, the OTP is logged to the console by `ConsoleOttHandler`.
+        In production, it is delivered via email.
+
+        **Tables read:** None
+        **Tables written:** None (OTT stored in-memory by Spring Security)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailRequest'
+            example:
+              email: kish.arumugam@example.com
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendOtpResponse'
+              example:
+                success: true
+                maskedEmail: "ki***@example.com"
+                expiresInSeconds: 600
+        '422':
+          description: Email missing or invalid
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '429':
+          description: Rate limit exceeded — too many OTP requests for this email
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: https://nesam.org/problems/rate-limit-exceeded
+                title: Too Many Requests
+                status: 429
+                detail: Too many OTP requests. Please wait before trying again.
+                instance: /api/v1/public/registration/send-otp
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # API 3 — Verify OTP
+  # ─────────────────────────────────────────────────────────────────────────
+  /public/registration/verify-otp:
+    post:
+      tags: [Registration — Public]
+      operationId: verifyOtp
+      summary: Verify OTP and receive REGISTRATION JWT
+      description: |
+        **Validates the one-time token entered by the user and issues a signed JWT.**
+
+        The request body is the raw OTT UUID string (the same format used by the existing
+        `/users/ott/login` endpoint). Content-Type must be `text/plain`.
+
+        The OTT is consumed (marked as used) — it cannot be used again.
+        If invalid or expired, returns HTTP 422.
+
+        The returned JWT has:
+        - `sub` = email address (NOT a `nesam_user_id` — the user row doesn't exist yet)
+        - `scope` = `REGISTRATION`
+        - `exp` = 24 hours from now
+
+        This JWT must be sent as `Authorization: Bearer <token>` on all subsequent
+        registration endpoints (APIs 4–7). It cannot be used for any other endpoints.
+
+        **Tables read:** OTT service (in-memory)
+        **Tables written:** None
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              format: uuid
+            example: ea11a3b1-abc1-1234-5678-abcdef012345
+      responses:
+        '200':
+          description: OTP valid — REGISTRATION JWT issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyOtpResponse'
+              examples:
+                new_application:
+                  summary: Fresh application — no pending application found
+                  value:
+                    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    email: "kish.arumugam@example.com"
+                    applicationStatus: "NEW"
+                    pendingApplicationId: null
+                pending_application:
+                  summary: Pending application found — frontend shows resume option
+                  value:
+                    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    email: "kish.arumugam@example.com"
+                    applicationStatus: "PENDING_APPLICATION"
+                    pendingApplicationId: "123e4567-e89b-12d3-a456-426614174000"
+        '422':
+          description: OTP is invalid, expired, or already used
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: https://nesam.org/problems/otp-invalid
+                title: OTP Validation Failed
+                status: 422
+                detail: Invalid or expired OTP. Please request a new one.
+                instance: /api/v1/public/registration/verify-otp
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # API 4 — Prefill
+  # ─────────────────────────────────────────────────────────────────────────
+  /public/registration/prefill:
+    get:
+      tags: [Registration — JWT Protected]
+      operationId: getPrefill
+      summary: Get prefill data for the registration wizard
+      description: |
+        **Called immediately after OTP verification to pre-populate the wizard.**
+
+        The email is extracted from the JWT claims — not from a request parameter.
+
+        **If a pending application exists** (the JWT's `applicationStatus` was `PENDING_APPLICATION`):
+        - `source` = `PENDING_APPLICATION`
+        - Returns `savedContact`, `savedDateOfBirth`, `savedGender`, `savedNominee` from `nesam_application_details`
+
+        **If this is a fresh application:**
+        - `source` = `ALUMNI_MASTER`
+        - Returns whatever the alumni master has (name, graduating year, department, address, mobile, DOB, gender)
+        - `savedContact`, `savedDateOfBirth`, etc. will be populated if the alumni master has them, null otherwise
+
+        In both cases, `alumni` is always returned — it contains identity and tier info that the
+        wizard needs for display (name, founding status) and fee calculation.
+
+        `isFounding` is computed server-side by comparing today's date against
+        `PROGRAM_LAUNCH_DATE + FOUNDING_WINDOW_DAYS` from `system_parameters`.
+
+        **Tables read:** `nesam_applications`, `nesam_application_details`, `aa_alumni_master`, `system_parameters`
+        **Tables written:** None
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Prefill data returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrefillResponse'
+              example:
+                source: ALUMNI_MASTER
+                applicationId: null
+                alumni:
+                  fullName: Kish Arumugam
+                  email: kish.arumugam@example.com
+                  graduatingYear: 2012
+                  department: Mechanical Engineering
+                  isPatron: false
+                  isFounding: true
+                savedContact:
+                  mobile: "9876543210"
+                  line1: 42 Main Street
+                  line2: Flat 3B
+                  city: Erode
+                  state: Tamil Nadu
+                  postalCode: "638316"
+                  country: India
+                savedDateOfBirth: "1990-05-15"
+                savedGender: MALE
+                savedNominee: null
+        '401':
+          description: JWT missing or malformed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: JWT does not have REGISTRATION scope
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # API 5 — Fee Preview
+  # ─────────────────────────────────────────────────────────────────────────
+  /public/registration/fee-preview:
+    get:
+      tags: [Registration — JWT Protected]
+      operationId: getFeePreview
+      summary: Calculate and preview membership fee breakdown
+      description: |
+        **Called when the user enters or confirms their Date of Birth in the wizard.**
+
+        All fee logic runs on the backend — never on the frontend.
+
+        **Calculation steps:**
+        1. Derive completed age from `dateOfBirth` and today's date
+        2. Validate age < 60 (otherwise HTTP 422)
+        3. Look up `master_membership_fee_slabs` for the active slab matching this age
+        4. Look up `master_dfc_rate_slabs` for the active DFC rate matching this age
+        5. Read `ADVANCE_DFC_MULTIPLIER` from `system_parameters` (default: 5)
+        6. Determine tier (REGULAR / PATRON / FOUNDING / FOUNDING_PATRON) from alumni master and founding window
+        7. Apply the correct discount percentage from `system_parameters`
+        8. **For PATRON and FOUNDING_PATRON only:** compare the age-based fee with the
+           graduation-year-based fee and apply whichever is lower (business rule FR-MA-05)
+        9. Compute `advanceDfc = dfcPerEvent × multiplier`
+        10. Compute `totalPayable = finalMembershipFee + advanceDfc`
+
+        The response gives the frontend everything it needs to render the fee breakdown
+        on the "Age Details" and "Summary" screens.
+
+        **Tables read:** `master_membership_fee_slabs`, `master_dfc_rate_slabs`, `system_parameters`, `aa_alumni_master`
+        **Tables written:** None
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: dateOfBirth
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: The applicant's date of birth in ISO-8601 format (YYYY-MM-DD)
+          example: "1990-05-15"
+      responses:
+        '200':
+          description: Fee breakdown calculated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeePreviewResponse'
+              example:
+                completedAge: 35
+                ageSlab: "31 - 35 Years"
+                baseMembershipFee: 5000.00
+                discountPercent: 10.00
+                discountAmount: 500.00
+                finalMembershipFee: 4500.00
+                dfcPerEvent: 400.00
+                advanceDfcMultiplier: 5
+                advanceDfc: 2000.00
+                totalPayable: 6500.00
+                tierApplied: FOUNDING
+                slabSource: AGE
+        '401':
+          description: JWT missing or malformed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: JWT does not have REGISTRATION scope
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '422':
+          description: Applicant is 60 or older, or no active fee slab exists for the computed age
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: https://nesam.org/problems/age-ineligible
+                title: Age Ineligibility
+                status: 422
+                detail: Applicants must be under 60 years of age to register.
+                instance: /api/v1/public/registration/fee-preview
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # API 6 — Save Details
+  # ─────────────────────────────────────────────────────────────────────────
+  /public/registration/details:
+    patch:
+      tags: [Registration — JWT Protected]
+      operationId: saveDetails
+      summary: Save or update wizard form data (auto-save)
+      description: |
+        **Partial update endpoint — called after each wizard step to persist the user's input.**
+
+        Only fields included in the request body are written. Fields omitted are not touched.
+        This means calling this endpoint with just `{ "mobile": "9876543210" }` updates only
+        the mobile number and leaves all other fields unchanged.
+
+        **On the very first call** (when `applicationId` is null):
+        - Creates a new `nesam_applications` row with `status = STARTED`, `started_at = now()`
+        - Links it to the alumni master via `aa_alumni_id`
+        - Creates a new `nesam_application_details` row with only the provided fields
+        - Returns the new `applicationId` — **the frontend must store this**
+
+        **On all subsequent calls** (when `applicationId` is provided):
+        - Verifies the application belongs to the JWT email (security check)
+        - Updates only the changed fields in `nesam_application_details`
+
+        If the user closes the browser after this call, `GET /prefill` will reload the
+        saved data when they return and re-verify their email.
+
+        **Tables read:** `nesam_applications`
+        **Tables written:** `nesam_applications` (upsert), `nesam_application_details` (upsert)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveDetailsRequest'
+            examples:
+              step_3_contact:
+                summary: Step 3 — Contact details only
+                value:
+                  applicationId: null
+                  mobile: "9876543210"
+                  line1: "42 Main Street"
+                  line2: "Flat 3B"
+                  city: Erode
+                  state: Tamil Nadu
+                  postalCode: "638316"
+                  country: India
+              step_4_age:
+                summary: Step 4 — Date of birth and gender added
+                value:
+                  applicationId: "123e4567-e89b-12d3-a456-426614174000"
+                  dateOfBirth: "1990-05-15"
+                  gender: MALE
+              step_5_nominee:
+                summary: Step 5 — Nominee details added
+                value:
+                  applicationId: "123e4567-e89b-12d3-a456-426614174000"
+                  nomineeName: "Priya K"
+                  nomineeRelationship: SPOUSE
+                  nomineeEmail: "priya@example.com"
+                  nomineeMobile: "9876500000"
+      responses:
+        '200':
+          description: Details saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveDetailsResponse'
+              example:
+                applicationId: "123e4567-e89b-12d3-a456-426614174000"
+                status: STARTED
+                savedAt: "2026-03-15T10:30:00Z"
+        '401':
+          description: JWT missing or malformed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: JWT does not have REGISTRATION scope, or applicationId belongs to a different user
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # API 7 — Submit
+  # ─────────────────────────────────────────────────────────────────────────
+  /public/registration/submit:
+    post:
+      tags: [Registration — JWT Protected]
+      operationId: submitApplication
+      summary: Submit registration — create membership (atomic transaction)
+      description: |
+        **The final step. All writes happen in a single `@Transactional` block — all succeed or all roll back.**
+
+        **Pre-submission validations (returns 422 if any fail):**
+        - `selfDeclarationAccepted` must be `true`
+        - `nominees` list must not be empty
+        - Sum of all nominee `percentageShare` values must equal `100.00` (±0.01 tolerance)
+        - Age derived from `nesam_application_details.dateOfBirth` must be < 60
+        - All required fields must be present: mobile, line1, city, state, postalCode, country, dateOfBirth, gender, nomineeName, nomineeRelationship
+
+        **Transaction sequence (in order):**
+        1. Load and validate the application (belongs to JWT email, not already COMPLETED)
+        2. Re-validate age < 60 from saved details
+        3. Create `nesam_users` row (or find existing by email)
+        4. Create `nesam_user_addresses` row (type = CORRESPONDENCE)
+        5. Set `nesam_applications.status = COMPLETED`, `completed_at = now()`
+        6. Re-calculate fee using `FeeCalculationService`
+        7. Insert `nesam_application_payments` (status = SUCCESS for MVP mock payment)
+        8. Compute membership tier (REGULAR / PATRON / FOUNDING / FOUNDING_PATRON)
+        9. Generate membership number: `NES-{YYYY}-{NNN}` (zero-padded, sequential per year)
+        10. Create `nesam_members` row (status = ACTIVE, enrollment_date = today)
+        11. Create `nesam_member_nominees` rows (one per nominee, active = true)
+
+        **On success:** The frontend should redirect the user to `/login` to obtain a full
+        MEMBER-scoped JWT through the normal login flow. The REGISTRATION JWT is now spent.
+
+        **Tables written:** `nesam_users`, `nesam_user_addresses`, `nesam_applications`,
+        `nesam_application_payments`, `nesam_members`, `nesam_member_nominees`
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitApplicationRequest'
+            example:
+              applicationId: "123e4567-e89b-12d3-a456-426614174000"
+              selfDeclarationAccepted: true
+              nominees:
+                - name: "Priya K"
+                  relationship: SPOUSE
+                  percentageShare: 100.00
+                  email: "priya@example.com"
+                  mobile: "9876500000"
+              paymentReference: "MOCK-PAY-001"
+      responses:
+        '201':
+          description: Membership created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitResponse'
+              example:
+                success: true
+                membershipNumber: "NES-2026-001"
+                membershipStatus: ACTIVE
+                nesamTier: FOUNDING
+                totalPaid: 6500.00
+                message: "Welcome to NESAm! Your membership NES-2026-001 is now active."
+        '401':
+          description: JWT missing or malformed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: JWT does not have REGISTRATION scope, or application belongs to a different user
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '409':
+          description: Application already submitted, or user already has an active membership
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: https://nesam.org/problems/already-submitted
+                title: Conflict
+                status: 409
+                detail: This application has already been submitted.
+                instance: /api/v1/public/registration/submit
+        '422':
+          description: Validation failed — missing fields, nominee shares do not sum to 100%, or applicant is 60+
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: https://nesam.org/problems/validation-error
+                title: Validation Error
+                status: 422
+                detail: Nominee percentage shares must sum to 100. Current total is 80.00.
+                instance: /api/v1/public/registration/submit

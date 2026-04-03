@@ -1,0 +1,135 @@
+package org.irtt.nesam.modules.registration;
+
+import org.irtt.nesam.modules.alumni.domain.model.AaAlumniMaster;
+import org.irtt.nesam.modules.alumni.repository.AaAlumniMasterRepository;
+import org.irtt.nesam.modules.registration.domain.model.ApplicationStatus;
+import org.irtt.nesam.modules.registration.domain.model.NESAmApplication;
+import org.irtt.nesam.modules.registration.repository.NESAmApplicationRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+
+import java.time.Instant;
+import java.time.LocalDate;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class RegistrationControllerIntegrationTest {
+
+    // Using properties fallback to local test DB to avoid testcontainers jar issues
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        // Fallback or uses default application-test.yml properties
+    }
+
+    @Autowired
+    private TestRestTemplate restTemplate;
+
+    @Autowired
+    private AaAlumniMasterRepository alumniRepository;
+
+    @Autowired
+    private NESAmApplicationRepository applicationRepository;
+
+    @BeforeEach
+    void setUp() {
+        applicationRepository.deleteAll();
+        alumniRepository.deleteAll();
+
+        // Setup Eligible Alumni
+        AaAlumniMaster eligible = new AaAlumniMaster();
+        eligible.setEmailId("eligible@example.com");
+        eligible.setMembershipType("LIFE");
+        eligible.setFullName("Test User");
+        eligible.setDateOfBirth(LocalDate.of(1990, 1, 1));
+        alumniRepository.save(eligible);
+
+        // Setup Registered Only
+        AaAlumniMaster registered = new AaAlumniMaster();
+        registered.setEmailId("registered@example.com");
+        registered.setMembershipType("REGISTERED");
+        alumniRepository.save(registered);
+
+        // Setup Pending Application
+        AaAlumniMaster pendingAlumni = new AaAlumniMaster();
+        pendingAlumni.setEmailId("pending@example.com");
+        pendingAlumni.setMembershipType("LIFE");
+        alumniRepository.save(pendingAlumni);
+
+        NESAmApplication app = new NESAmApplication();
+        app.setEmailId("pending@example.com");
+        app.setStatus(ApplicationStatus.STARTED);
+        app.setStartedAt(Instant.now());
+        applicationRepository.save(app);
+    }
+
+    @Test
+    void testInitiate_withEligibleEmail_returnsELIGIBLE() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<>("{\"email\": \"eligible@example.com\"}", headers);
+
+        ResponseEntity<String> response = restTemplate.postForEntity("/api/v1/public/registration/initiate", request, String.class);
+        
+        assertEquals(200, response.getStatusCode().value());
+        assertTrue(response.getBody().contains("ELIGIBLE"));
+    }
+
+    @Test
+    void testInitiate_withPendingApplication_returnsPENDING_APPLICATION() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<>("{\"email\": \"pending@example.com\"}", headers);
+
+        ResponseEntity<String> response = restTemplate.postForEntity("/api/v1/public/registration/initiate", request, String.class);
+        
+        assertEquals(200, response.getStatusCode().value());
+        assertTrue(response.getBody().contains("PENDING_APPLICATION"));
+    }
+
+    @Test
+    void testInitiate_withUnknownEmail_returnsNOT_FOUND() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<>("{\"email\": \"unknown@example.com\"}", headers);
+
+        ResponseEntity<String> response = restTemplate.postForEntity("/api/v1/public/registration/initiate", request, String.class);
+        
+        assertEquals(200, response.getStatusCode().value());
+        assertTrue(response.getBody().contains("NOT_FOUND"));
+    }
+
+    @Test
+    void testInitiate_withRegisteredOnlyMember_returnsNOT_A_MEMBER() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<>("{\"email\": \"registered@example.com\"}", headers);
+
+        ResponseEntity<String> response = restTemplate.postForEntity("/api/v1/public/registration/initiate", request, String.class);
+        
+        assertEquals(200, response.getStatusCode().value());
+        assertTrue(response.getBody().contains("NOT_A_MEMBER"));
+    }
+
+    @Test
+    void testSendOtp_withValidEmail_returnsSuccess() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<>("{\"email\": \"eligible@example.com\"}", headers);
+
+        ResponseEntity<String> response = restTemplate.postForEntity("/api/v1/public/registration/send-otp", request, String.class);
+        
+        assertEquals(200, response.getStatusCode().value());
+        assertTrue(response.getBody().contains("\"success\":true"));
+    }
+}

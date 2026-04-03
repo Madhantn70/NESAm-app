@@ -1,245 +1,924 @@
-# **INVARIANTS**
+# 
 
-## **Purpose**
+# **# 📘 \*\*NESAm INVARIANTS v2 (UPDATED)\*\***
 
-This document defines the non-negotiable rules of the NESAm program that must never be violated by humans, software, or AI-assisted development.  
-Its purpose is to:
+# 
 
-* Preserve legal, financial, and ethical correctness of NESAm  
-* Prevent silent rule erosion during refactors or AI-assisted changes  
-* Act as the final authority when documents, code, or AI outputs conflict
+# **---**
 
-If any behavior contradicts an invariant defined here, the behavior is invalid by definition, even if it appears to work technically.
+# 
 
-## **Scope & Authority**
+# **# \*\*1. PROGRAM ACTIVATION INVARIANTS\*\***
 
-Derived strictly from:
+# 
 
-* NESAm Byelaws v1.0  
-* NESAm FAQs  
-* NESAm SRS v1.19  
-* NESAm ER v1.5  
-* Database Schema v1.5
+# **---**
 
-These invariants apply across:
+# 
 
-* Mobile App  
-* Admin Web Portal  
-* Backend Services  
-* Database & Batch Jobs
+# **### \*\*INV-PA-01: Activation Threshold\*\***
 
-**Invariants override convenience, performance, and UX optimizations.**
+# 
 
-## **1\. PROGRAM ACTIVATION INVARIANTS**
+# **\* Program MUST NOT process claims until:**
 
-### **INV-PA-01: Program Activation Threshold**
+# 
 
-NESAm must not process any claim until the program is activated. Activation occurs only when **Registered Member Count ≥ 100** within the allowed window.  
-**Source:** Byelaws §8.1, FAQs
+# &#x20; **```**
 
-### **INV-PA-02: Pre-Activation Refund Rule**
+# &#x20; **registered\_members ≥ 100**
 
-If activation threshold is not met within the allowed duration:
+# &#x20; **```**
 
-* All collected Membership Fees and Advance DFC must be refunded in full.  
-* No deductions are allowed.
+# **\* Activation is irreversible once achieved**
 
-**Source:** Byelaws §8.6.1
+# 
 
-## **2\. ELIGIBILITY & ENROLLMENT INVARIANTS**
+# **✔ Based on byelaws** 
 
-### **INV-EL-01: Parent Association Eligibility**
+# 
 
-Only Life Members or Patron Members of IRTTAA are eligible to apply. NESAm must not infer or override IRTTAA status.  
-**Source:** Byelaws §8.2, SRS FR-MA-01
+# **---**
 
-### **INV-EL-02: Age at Entry Constraint**
+# 
 
-A person must be below 60 years of age on the date of membership fee payment. No overrides are allowed.  
-**Source:** Byelaws §8.2, FAQs
+# **### \*\*INV-PA-02: Pre-Activation Refund\*\***
 
-### **INV-EL-03: Individual Enrollment Rule**
+# 
 
-Each alumnus must register individually, irrespective of marital or family relationship.  
-**Source:** Byelaws §8.2, FAQs
+# **If program NOT activated:**
 
-## **3\. MEMBERSHIP IDENTITY & LIFECYCLE INVARIANTS**
+# 
 
-### **INV-ML-01: Membership Instance Separation**
+# **\* All payments MUST be fully refunded**
 
-* A User (user\_uuid) may have multiple NESAm Memberships over time.  
-* A Membership (nesam\_id) represents exactly one lifecycle instance.
+# **\* Includes:**
 
-**Source:** SRS §7.2, DB Schema
+# 
 
-### **INV-ML-02: Single Active Membership Rule**
+# &#x20; **\* membership fee**
 
-A User may have only one membership in either:
+# &#x20; **\* advance DFC**
 
-* **ACTIVE** or  
-* **NOTICE\_PERIOD**
+# 
 
-Concurrent active memberships are forbidden.  
-**Source:** SRS FR-MA-20
+# **❌ No deductions allowed**
 
-### **INV-ML-03: Allowed Membership Statuses**
+# 
 
-Valid statuses are strictly limited to:
+# **---**
 
-* **PENDING**  
-* **ACTIVE**  
-* **NOTICE\_PERIOD**  
-* **LAPSED**  
-* **DECEASED**
+# 
 
-No additional statuses may be introduced.  
-**Source:** DB Enum, SRS
+# **# \*\*2. IDENTITY INVARIANTS\*\***
 
-### **INV-ML-04: Lapsed Membership Finality**
+# 
 
-A **LAPSED** membership cannot be reactivated. Rejoining requires fresh application, new fee, and new nesam\_id.  
-**Source:** Byelaws §11.1.9, SRS FR-MA-20
+# **---**
 
-## **4\. FINANCIAL & DEPOSIT INVARIANTS**
+# 
 
-### **INV-FN-01: Membership Fee Non-Refundability (Post-Activation)**
+# **### \*\*INV-ID-01: User Identity Immutability\*\***
 
-Once the program is activated, Membership Fee is non-refundable under all circumstances.  
-**Source:** Byelaws §10, FAQs
+# 
 
-### **INV-FN-02: Advance DFC (Security Deposit) Isolation**
+# **\* `nesam\_user\_id` is immutable**
 
-Advance DFC is a locked security deposit. It must not be used for routine DFC payments.  
-**Source:** SRS §1.3, FR-MA-12
+# **\* MUST NOT change across:**
 
-### **INV-FN-03: Permitted Use of Advance DFC**
+# 
 
-Advance DFC may be adjusted only during:
+# &#x20; **\* email updates**
 
-* Membership Lapsing (dues adjustment)  
-* Claim Settlement (outstanding dues deduction)
+# &#x20; **\* mobile updates**
 
-No other usage is allowed.  
-**Source:** Byelaws §11.1.7, SRS FR-WEB-09
+# &#x20; **\* re-registration**
 
-### **INV-FN-04: DFC Calculation Basis**
+# 
 
-DFC amount is determined by the contributor’s age on the date of demise, not enrollment age.  
-**Source:** Byelaws §11.4, FAQs
+# **---**
 
-### **INV-FN-05: DFC Contribution Cutoff**
+# 
 
-* Members above 70 years do not contribute DFC.  
-* Founding Members stop contributing at age 65 or 20 years, whichever is earlier.
+# **### \*\*INV-ID-02: Alumni Source Integrity\*\***
 
-**Source:** Byelaws §11.5, FAQs
+# 
 
-## **5\. PAYMENT DEFAULT & LAPSING INVARIANTS**
+# **\* `aa\_alumni\_master` is external truth**
 
-### **INV-LP-01: DFC Payment Window**
+# **\* System MUST NOT modify:**
 
-DFC must be paid within 30 days of notification.  
-**Source:** Byelaws §11.3
+# 
 
-### **INV-LP-02: Notice Period Duration**
+# &#x20; **\* membership\_type**
 
-Non-payment triggers a 1-year Notice Period. Membership remains **ACTIVE** during this period.  
-**Source:** Byelaws §11.1.3
+# &#x20; **\* alumni status**
 
-### **INV-LP-03: Grace Period Enforcement**
+# 
 
-After Notice Period, a 15-day Grace Period is mandatory before lapsing.  
-**Source:** Byelaws §11.1.5
+# **---**
 
-### **INV-LP-04: Automatic Lapsing**
+# 
 
-Failure to clear dues after Grace Period results in automatic **LAPSED** status.  
-**Source:** Byelaws §11.1.6
+# **### \*\*INV-ID-03: One User ↔ One Alumni Mapping\*\***
 
-## **6\. CLAIM ELIGIBILITY & SETTLEMENT INVARIANTS**
+# 
 
-### **INV-CL-01: Cause of Claim**
+# **\* A user can link to only ONE alumni record**
 
-Claims are processed only for death of a NESAm Member.  
-**Source:** Byelaws §12.2
+# **\* Alumni record can map to multiple users ONLY if explicitly allowed (rare case)**
 
-### **INV-CL-02: Dormant Period Enforcement**
+# 
 
-Claims are not eligible during Dormant Period (default 3 months). Exceptions require explicit committee approval.  
-**Source:** Byelaws §12.3, SRS FR-WEB-11
+# **---**
 
-### **INV-CL-03: Membership Status at Death**
+# 
 
-Claims are valid only if membership was:
+# **# \*\*3. APPLICATION INVARIANTS\*\***
 
-* **ACTIVE** or  
-* **NOTICE\_PERIOD**
+# 
 
-**LAPSED** memberships are ineligible.  
-**Source:** Byelaws §12.4
+# **---**
 
-### **INV-CL-04: Outstanding Dues Deduction**
+# 
 
-Any pending DFC dues must be deducted from the settlement amount.  
-**Source:** Byelaws §11.1.11, SRS FR-WEB-12
+# **### \*\*INV-AP-01: Application is NOT Membership\*\***
 
-## **7\. NOMINEE & BENEFICIARY INVARIANTS**
+# 
 
-### **INV-NM-01: Nominee Percentage Integrity**
+# **\* `nesam\_applications` ≠ membership**
 
-Nominee percentage shares must sum to exactly 100%.  
-**Source:** Byelaws §9.3, DB Constraint
+# **\* Membership exists ONLY after:**
 
-### **INV-NM-02: Beneficiary Priority**
+# 
 
-* Nominees have absolute priority over Legal Heirs.  
-* Legal Heirs are considered only if all nominees are deceased.
+# &#x20; **```**
 
-**Source:** Byelaws §12.2
+# &#x20; **application.status = COMPLETED**
 
-## **8\. ADMIN & OVERRIDE INVARIANTS**
+# &#x20; **AND payment.status = SUCCESS**
 
-### **INV-AD-01: Humanitarian Exception Authority**
+# &#x20; **AND verification = APPROVED**
 
-NESAm Committee may honor a claim even after lapsing only under documented humanitarian grounds.  
-Such decisions are:
+# &#x20; **```**
 
-* Exceptional  
-* Final  
-* Must be logged
+# 
 
-**Source:** Byelaws §11.12, FAQs
+# **---**
 
-## **9\. DATA & AUDIT INVARIANTS**
+# 
 
-### **INV-AU-01: Ledger Immutability**
+# **### \*\*INV-AP-02: Application Immutability\*\***
 
-Financial transaction records are append-only. No deletion or overwrite is permitted.  
-**Source:** SRS §7.7, NFR-05
+# 
 
-### **INV-AU-02: Settlement Snapshot Finality**
+# **After submission:**
 
-Settlement Records are immutable once created.  
-**Source:** SRS §7.9
+# 
 
-## **10\. AI & SYSTEM GOVERNANCE INVARIANTS**
+# **\* application details MUST NOT change**
 
-### **INV-AI-01: AI Authority Boundary**
+# **\* acts as snapshot**
 
-AI must not modify:
+# 
 
-* Invariants  
-* Fee slabs  
-* DFC rates  
-* Lifecycle rules
+# **---**
 
-**Source:** AI Governance Manual v2.2
+# 
 
-### **INV-AI-02: Ambiguity Stop Rule**
+# **### \*\*INV-AP-03: Payment Gate for Membership\*\***
 
-If an invariant appears ambiguous or contradictory, implementation must stop until clarified.
+# 
 
-## **Enforcement Rule**
+# **Membership creation MUST NOT happen unless:**
 
-Any code, configuration, or AI output violating these invariants is invalid, regardless of tests or approvals.  
-**Last Reviewed:** 2026-01-15 **Owner:** Kish
+# 
+
+# **```**
+
+# **payment.status = SUCCESS**
+
+# **```**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*4. MEMBERSHIP INVARIANTS\*\***
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-ML-01: Membership Lifecycle Integrity\*\***
+
+# 
+
+# **Membership states are STRICT:**
+
+# 
+
+# **```**
+
+# **ACTIVE**
+
+# **NOTICE\_PERIOD**
+
+# **LAPSED**
+
+# **DECEASED**
+
+# **```**
+
+# 
+
+# **❌ `IN\_GRACE\_PERIOD` is NOT a status (time logic only)**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-ML-02: Single Active Membership\*\***
+
+# 
+
+# **A user can have ONLY ONE:**
+
+# 
+
+# **```**
+
+# **ACTIVE OR NOTICE\_PERIOD**
+
+# **```**
+
+# 
+
+# **at any time**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-ML-03: Lapsed is Terminal\*\***
+
+# 
+
+# **\* LAPSED membership:**
+
+# 
+
+# &#x20; **\* cannot be reactivated**
+
+# &#x20; **\* requires fresh application**
+
+# 
+
+# **✔ Matches governance** 
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-ML-04: Membership Creation Rule\*\***
+
+# 
+
+# **Membership MUST be created ONLY through:**
+
+# 
+
+# **```**
+
+# **Application → Approval → Activation**
+
+# **```**
+
+# 
+
+# **Direct insertion is forbidden**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-ML-05: Membership Identity Separation\*\***
+
+# 
+
+# **\* Membership ≠ User**
+
+# **\* Membership is lifecycle instance**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*5. FINANCIAL INVARIANTS\*\***
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-FN-01: Membership Fee Finality\*\***
+
+# 
+
+# **\* Non-refundable AFTER activation**
+
+# 
+
+# **✔ Byelaws enforced** 
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-FN-02: Advance DFC Isolation\*\***
+
+# 
+
+# **\* Advance DFC is LOCKED**
+
+# **\* MUST NOT be used for:**
+
+# 
+
+# &#x20; **\* regular DFC payments**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-FN-03: Advance DFC Allowed Usage\*\***
+
+# 
+
+# **Allowed ONLY in:**
+
+# 
+
+# **1. Lapsing adjustment**
+
+# **2. Claim settlement**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-FN-04: Invoice is Source of Truth\*\***
+
+# 
+
+# **\* All payable amounts MUST be represented as invoice**
+
+# **\* Payments without invoice = invalid (except adhoc allowed explicitly)**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-FN-05: Payment Idempotency\*\***
+
+# 
+
+# **\* Same payment MUST NOT be recorded twice**
+
+# **\* Must use:**
+
+# 
+
+# &#x20; **```**
+
+# &#x20; **gateway\_reference UNIQUE**
+
+# &#x20; **```**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*6. DFC INVARIANTS (CRITICAL CORE)\*\***
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-DFC-01: Event-Based Contribution\*\***
+
+# 
+
+# **DFC MUST ONLY exist when:**
+
+# 
+
+# **```**
+
+# **Demise Event exists**
+
+# **```**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-DFC-02: Demand Generation Rule\*\***
+
+# 
+
+# **For every demise event:**
+
+# 
+
+# **\* DFC demand MUST be generated for:**
+
+# 
+
+# &#x20; **\* all eligible members**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-DFC-03: Age-Based Calculation\*\***
+
+# 
+
+# **DFC amount MUST be:**
+
+# 
+
+# **```**
+
+# **based on contributor age at event date**
+
+# **```**
+
+# 
+
+# **✔ Byelaws rule** 
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-DFC-04: Contribution Cutoff\*\***
+
+# 
+
+# **\* Age > 70 → no contribution**
+
+# **\* Founding:**
+
+# 
+
+# &#x20; **\* stop at 65 OR 20 years**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-DFC-05: Payment Window\*\***
+
+# 
+
+# **\* DFC must be paid within:**
+
+# 
+
+# &#x20; **```**
+
+# &#x20; **30 days**
+
+# &#x20; **```**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*7. LAPSING \& TIME INVARIANTS\*\***
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-LP-01: Notice Period Logic\*\***
+
+# 
+
+# **\* Non-payment → NOTICE\_PERIOD (1 year)**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-LP-02: Grace Period Logic\*\***
+
+# 
+
+# **\* After notice period:**
+
+# 
+
+# &#x20; **```**
+
+# &#x20; **15 days grace**
+
+# &#x20; **```**
+
+# **\* NOT a separate status**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-LP-03: Automatic Lapsing\*\***
+
+# 
+
+# **If dues not cleared:**
+
+# 
+
+# **```**
+
+# **→ membership = LAPSED**
+
+# **```**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-LP-04: Recovery Rule\*\***
+
+# 
+
+# **\* During notice period:**
+
+# 
+
+# &#x20; **\* dues paid → ACTIVE**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*8. CLAIM INVARIANTS\*\***
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-CL-01: Claim Trigger\*\***
+
+# 
+
+# **Claim ONLY triggered by:**
+
+# 
+
+# **```**
+
+# **Demise Event**
+
+# **```**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-CL-02: Eligibility Rule\*\***
+
+# 
+
+# **Valid only if:**
+
+# 
+
+# **```**
+
+# **membership ∈ {ACTIVE, NOTICE\_PERIOD}**
+
+# **```**
+
+# 
+
+# **❌ LAPSED → NOT eligible**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-CL-03: Dormant Period Rule\*\***
+
+# 
+
+# **\* No claims within:**
+
+# 
+
+# &#x20; **```**
+
+# &#x20; **first 3 months**
+
+# &#x20; **```**
+
+# **\* Exception → committee approval**
+
+# 
+
+# **✔ Byelaws** 
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-CL-04: Dues Deduction\*\***
+
+# 
+
+# **Final payout:**
+
+# 
+
+# **```**
+
+# **collected\_amount - outstanding\_dues**
+
+# **```**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-CL-05: Program Activation Dependency\*\***
+
+# 
+
+# **\* Claim NOT allowed if:**
+
+# 
+
+# &#x20; **```**
+
+# &#x20; **program\_active = false**
+
+# &#x20; **```**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*9. NOMINEE INVARIANTS\*\***
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-NM-01: Minimum Nominee\*\***
+
+# 
+
+# **\* At least 1 nominee required**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-NM-02: Share Integrity\*\***
+
+# 
+
+# **```**
+
+# **SUM(percent\_share) = 100%**
+
+# **```**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-NM-03: Fallback Rule\*\***
+
+# 
+
+# **If nominees unavailable:**
+
+# 
+
+# **→ Legal heirs**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*10. SYSTEM INVARIANTS\*\***
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-SY-01: System Parameters Authority\*\***
+
+# 
+
+# **\* Business rules MUST come from:**
+
+# 
+
+# &#x20; **```**
+
+# &#x20; **system\_parameters**
+
+# &#x20; **```**
+
+# **\* Hardcoding forbidden**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-SY-02: Event-Driven Integrity\*\***
+
+# 
+
+# **System MUST operate via:**
+
+# 
+
+# **```**
+
+# **Demise Event → DFC Demand → Invoice → Payment → Claim**
+
+# **```**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*11. DATA INTEGRITY INVARIANTS (DB LEVEL)\*\***
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-DB-01: Referential Integrity\*\***
+
+# 
+
+# **\* All FK relationships MUST be valid**
+
+# **\* No orphan records**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-DB-02: Enum Enforcement\*\***
+
+# 
+
+# **\* Only allowed enum values**
+
+# **\* No dynamic statuses**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-DB-03: Timestamp Integrity\*\***
+
+# 
+
+# **\* created\_at immutable**
+
+# **\* modified\_at auto-updated**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*12. AI GOVERNANCE INVARIANTS\*\***
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-AI-01: Canon Supremacy\*\***
+
+# 
+
+# **\* Domain Canon is final authority**
+
+# **\* AI MUST NOT redefine terms**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*INV-AI-02: Invariant Protection\*\***
+
+# 
+
+# **\* AI MUST fail if invariant violated**
+
+# 
+
+# **✔ Matches governance** 
+
+# 
+
+# **---**
+
+# 
+
+# 
+

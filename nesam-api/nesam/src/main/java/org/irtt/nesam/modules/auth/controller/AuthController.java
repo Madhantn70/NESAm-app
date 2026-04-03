@@ -1,6 +1,6 @@
 package org.irtt.nesam.modules.auth.controller;
 
-import org.irtt.nesam.modules.user.domain.model.UserProfile;
+import org.irtt.nesam.modules.user.domain.model.NESAmUser;
 import org.irtt.nesam.modules.user.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/users/ott")
@@ -41,11 +40,12 @@ public class AuthController {
     @PostMapping(value = "/token", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     public ResponseEntity<Void> generateToken(@RequestParam("email") String email) {
         try {
-            userService.getUserEntityByEmail(email);
+            userService.getExistingUserByEmail(email);
             // Email exists, generate OTP
             OneTimeToken token = oneTimeTokenService.generate(new GenerateOneTimeTokenRequest(email, Duration.ofSeconds(600)));
             log.info("Testing Console Provider: OTP for {} is [{}]", email, token.getTokenValue());
         } catch (Exception e) {
+            log.warn("Login attempt for non-existent email: {}", email);
             // Do nothing to prevent exposing whether an email exists or not
         }
         return ResponseEntity.ok().build();
@@ -57,7 +57,7 @@ public class AuthController {
         OneTimeToken oneTimeToken = oneTimeTokenService.consume(new OneTimeTokenAuthenticationToken(token));
 
         String email = oneTimeToken.getUsername();
-        UserProfile user = userService.getUserEntityByEmail(email);
+        NESAmUser user = userService.getExistingUserByEmail(email);
 
         Instant now = Instant.now();
         long expiry = 36000L;
@@ -66,7 +66,7 @@ public class AuthController {
                 .issuer("nesam-auth")
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(expiry))
-                .subject(user.getUserUuid().toString())
+                .subject(user.getNesamUserId().toString())
                 .claim("email", user.getEmail())
                 .claim("role", "ROLE_USER")
                 .build();

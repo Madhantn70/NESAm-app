@@ -10,6 +10,7 @@
       password: ${DB_PASSWORD}
     jpa:
       properties.hibernate.dialect : org.hibernate.dialect.PostgreSQLDialect
+      properties.hibernate.type.preferred_uuid_jdbc_type: CHAR
       hibernate.ddl-auto: none
       hibernate.show-sql: true
   #  autoconfigure:
@@ -24,11 +25,10 @@
   springdoc:
     api-docs:
       enabled: true
-      path: /v3/api-docs
     swagger-ui:
-      enabled: true
       path: /swagger-ui.html
+      enabled: true
     override-with-generic-response: false
 
   server:
-    port: 9090
+    port: 8080

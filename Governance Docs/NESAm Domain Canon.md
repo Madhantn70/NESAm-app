@@ -1,203 +1,852 @@
-# **DOMAIN CANON**
+# 
 
-## **Purpose**
+# **---**
 
-This document defines the authoritative vocabulary and meanings for the NESAm program and its software system.  
-Its purpose is to:
+# 
 
-* Eliminate ambiguity in communication between humans and AI  
-* Prevent semantic drift across documents, code, and time  
-* Ensure legal, financial, and lifecycle terms are interpreted exactly once and consistently
+# **# 📘 \*\*NESAm DOMAIN CANON v2 (UPDATED)\*\***
 
-If a concept, role, state, or financial notion is not defined in this document, it is considered undefined and unusable in the system.  
-**Scope:** NESAm Program (Business \+ Software) **Authority:** Derived strictly from NESAm Byelaws v1.0, SRS v1.19, ER v1.5, DB Schema v1.5 **Rule:** No term may be redefined, aliased, or substituted. If a concept is missing here, it is undefined.
+# 
 
-## **1\. PROGRAM & ORGANIZATIONAL TERMS**
+# **---**
 
-### **NESAm (Neradi Eliya Samuga Atharavu Karam)**
+# 
 
-A community-driven alumni welfare program operated under the IRTT Alumni Association (IRTTAA), designed to provide one-time financial support to the family of a deceased NESAm Member through pooled contributions (DFC).
+# **# \*\*1. PROGRAM CORE\*\***
 
-### **IRTTAA (IRTT Alumni Association)**
+# 
 
-The parent legal body governing NESAm. All NESAm rules, disputes, and dissolutions are subject to IRTTAA byelaws and resolutions.
+# **### \*\*NESAm\*\***
 
-### **NESAm Committee**
+# 
 
-A group of office bearers authorized by IRTTAA to:
+# **A contribution-based welfare system where financial support is generated through \*\*event-driven pooled contributions (DFC)\*\* triggered only upon the demise of a member.** 
 
-* Approve or reject NESAm applications  
-* Verify documents  
-* Trigger demise events  
-* Approve settlements
+# 
 
-## **2\. PERSON & IDENTITY TERMS**
+# **---**
 
-### **User**
+# 
 
-A digital identity in the system represented by a user\_uuid. A User may or may not have an active NESAm Membership.
+# **# \*\*2. IDENTITY MODEL (FIXED \& FINAL)\*\***
 
-### **User UUID**
+# 
 
-An immutable system-generated identifier for a User. It persists across phone number changes and multiple membership lifecycles.
+# **### \*\*Alumni (aa\_alumni\_master)\*\***
 
-### **Applicant**
+# 
 
-A Life Member or Patron Member of IRTTAA who has applied to join NESAm but whose application is not yet approved.
+# **\* External authoritative identity source**
 
-### **Member (NESAm Member)**
+# **\* Managed by IRTTAA**
 
-An Applicant whose application is approved by the NESAm Committee and who holds a valid NESAm Membership.
+# **\* Determines eligibility (Life / Patron)**
 
-### **Founding Member**
+# 
 
-A Member who registered within the Founding Window (configured via system parameters from the Program Launch Date).
+# **👉 System MUST NOT mutate this.**
 
-### **Life Member (IRTTAA)**
+# 
 
-A person who has paid the one-time Life Membership fee to IRTTAA. Prerequisite for NESAm eligibility.
+# **---**
 
-### **Patron Member (IRTTAA)**
+# 
 
-A higher-tier IRTTAA member. Patron status:
+# **### \*\*User (nesam\_users)\*\***
 
-* Is sourced from the Parent DB  
-* Grants fee discounts in NESAm  
-* Does NOT alter DFC obligations
+# 
 
-## **3\. MEMBERSHIP & LIFECYCLE TERMS**
+# **\* Internal system identity**
 
-### **NESAm Membership**
+# **\* Identified by `nesam\_user\_id`**
 
-A single lifecycle instance linking a User to the NESAm Program. Identified by nesam\_id.
+# **\* Linked to exactly one alumni record (optional but preferred)**
 
-### **NESAm ID (nesam\_id)**
+# 
 
-A human-readable identifier representing one membership instance. A User may have multiple NESAm IDs over time, but only one may be Active or in Notice Period at a time.
+# **👉 \*\*This is the ONLY identity used inside NESAm\*\***
 
-### **Enrollment Date**
+# 
 
-The date on which an NESAm Membership becomes Active after approval.
+# **---**
 
-### **Membership Status**
+# 
 
-The authoritative lifecycle state of a membership. Allowed values:
+# **### \*\*User UUID (System Identity)\*\***
 
-* **PENDING:** Application submitted, awaiting verification/approval  
-* **ACTIVE:** Eligible for benefits and obligations  
-* **NOTICE\_PERIOD:** Temporarily active but with unpaid DFC dues  
-* **LAPSED:** Membership terminated due to non-payment  
-* **DECEASED:** Membership closed due to death of the Member
+# 
 
-No other status is valid.
+# **\* Immutable**
 
-### **Dormant Period**
+# **\* Survives:**
 
-A waiting period (configured, default 3 months) after enrollment during which death claims are not honored, except for explicitly allowed causes.
+# 
 
-### **Notice Period**
+# &#x20; **\* email change**
 
-A 1-year grace window following non-payment of DFC (after the 30-day payment window), during which dues can still be cleared.
+# &#x20; **\* mobile change**
 
-### **Grace Period**
+# &#x20; **\* re-registration**
 
-A final 15-day window after the Notice Period before a membership becomes Lapsed.
+# 
 
-## **4\. FINANCIAL & CONTRIBUTION TERMS**
+# **✔ Matches invariant expectation** 
 
-### **Membership Fee**
+# 
 
-A one-time, non-refundable fee paid during registration. Used to build and sustain the NESAm operational corpus.
+# **---**
 
-### **Death Fraternity Contribution (DFC)**
+# 
 
-A variable contribution collected from each contributing Member only when another Member dies. The amount depends on the contributor’s age on the date of demise.
+# **# \*\*3. APPLICATION DOMAIN\*\***
 
-### **DFC Rate**
+# 
 
-The slab-defined amount applicable for a specific age band, versioned with validity dates.
+# **### \*\*Application (nesam\_applications)\*\***
 
-### **Advance DFC / Security Deposit**
+# 
 
-A refundable deposit collected at registration, calculated as: Advance DFC \= DFC Rate × ADVANCE\_DFC\_MULTIPLIER  
-Rules:
+# **Represents a \*\*registration attempt\*\*, not a membership.**
 
-* Remains locked during normal operation  
-* Used only during Lapsing or Death Settlement adjustments  
-* Not used for routine DFC payments
+# 
 
-### **DFC Demand**
+# **States:**
 
-A system-generated financial obligation raised against Members after a Demise Event.
+# 
 
-## **5\. CLAIM & BENEFICIARY TERMS**
+# **\* STARTED**
 
-### **Demise Event**
+# **\* COMPLETED**
 
-A verified record of confirmation that an Active or Notice Period Member has passed away.
+# **\* REJECTED**
 
-### **Claim**
+# **\* ABANDONED** 
 
-A one-time settlement process initiated only after:
+# 
 
-* Program activation  
-* Dormant Period completion  
-* Demise verification
+# **---**
 
-### **Nominee**
+# 
 
-A person designated by the Member to receive claim benefits. Nominees:
+# **### \*\*Application Details\*\***
 
-* May be multiple  
-* Must collectively sum to 100% share  
-* Are the primary beneficiaries
+# 
 
-### **Legal Heir**
+# **\* Snapshot of user data at time of applying**
 
-A fallback beneficiary eligible only if all nominees are deceased. Requires legal certification.
+# **\* Includes:**
 
-### **Beneficiary**
+# 
 
-The person(s) who finally receive the settlement amount (Nominee(s) or Legal Heir(s)).
+# &#x20; **\* contact info**
 
-### **Settlement**
+# &#x20; **\* nominee info**
 
-The finalized financial disbursement resulting from a Claim.
+# 
 
-## **6\. TRANSACTION & ACCOUNTING TERMS**
+# **👉 Immutable after submission**
 
-### **Transaction Ledger**
+# 
 
-An immutable audit log of all financial events.
+# **---**
 
-### **Transaction Types**
+# 
 
-* **CREDIT:** Money paid into the system  
-* **DEMAND:** Money requested from a member  
-* **DEBIT / ADJUSTMENT:** System-driven deductions (e.g., deposit adjustment)
+# **### \*\*Application Payment\*\***
 
-### **Settlement Record**
+# 
 
-A permanent snapshot of a completed claim, including nominee details, deductions, and payout.
+# **\* Tracks payment lifecycle**
 
-## **7\. SYSTEM & CONFIGURATION TERMS**
+# **\* Includes:**
 
-### **System Parameters**
+# 
 
-Admin-controlled global configuration values (e.g., Founding Window, Discounts, Multipliers). These are runtime law, not constants.
+# &#x20; **\* INITIATED**
 
-### **Parent Association Database (Parent DB)**
+# &#x20; **\* SUCCESS**
 
-The authoritative dataset from IRTTAA used to validate:
+# &#x20; **\* FAILED**
 
-* Life/Patron membership  
-* Eligibility
+# &#x20; **\* EXPIRED**
 
-## **8\. CANON ENFORCEMENT RULES**
+# 
 
-1. No synonym substitution is allowed (e.g., "Suspended" ≠ "Lapsed").  
-2. AI and humans must use only these terms.  
-3. If intent cannot be expressed using this canon → STOP.  
-4. Any change requires a logged Change Request and approval.
+# **👉 Only \*\*SUCCESS + VERIFIED → Membership creation\*\***
 
-**Last Reviewed:** 2026-01-15 **Owner:** Kish
+# 
+
+# **---**
+
+# 
+
+# **# \*\*4. MEMBERSHIP DOMAIN (CRITICAL FIXED)\*\***
+
+# 
+
+# **### \*\*Membership (nesam\_members)\*\***
+
+# 
+
+# **A \*\*lifecycle instance\*\* linking a User to NESAm.**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*Membership Status (UPDATED - CANON)\*\***
+
+# 
+
+# **Allowed states:**
+
+# 
+
+# **```**
+
+# **ACTIVE**
+
+# **NOTICE\_PERIOD**
+
+# **LAPSED**
+
+# **DECEASED**
+
+# **```**
+
+# 
+
+# **❌ Removed:**
+
+# 
+
+# **\* IN\_GRACE\_PERIOD**
+
+# 
+
+# **👉 Grace is \*\*time logic\*\*, not status**
+
+# **✔ Required by invariants** 
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*Membership Lifecycle\*\***
+
+# 
+
+# **```**
+
+# **APPLICATION → ACTIVE → NOTICE\_PERIOD → LAPSED**
+
+# &#x20;                              **↘**
+
+# &#x20;                               **DECEASED**
+
+# **```**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*Key Rules\*\***
+
+# 
+
+# **\* One user → multiple memberships over time**
+
+# **\* Only ONE membership can be:**
+
+# 
+
+# &#x20; **\* ACTIVE OR**
+
+# &#x20; **\* NOTICE\_PERIOD**
+
+# 
+
+# **✔ Enforced invariant** 
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*Membership Tier\*\***
+
+# 
+
+# **```**
+
+# **REGULAR**
+
+# **PATRON**
+
+# **FOUNDING**
+
+# **FOUNDING\_PATRON**
+
+# **```**
+
+# 
+
+# **👉 Affects:**
+
+# 
+
+# **\* fee calculation**
+
+# **\* discounts**
+
+# **\* DFC duration rules**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*5. FINANCIAL DOMAIN (CLEANED \& CORRECTED)\*\***
+
+# 
+
+# **---**
+
+# 
+
+# **## \*\*5.1 Membership Fee\*\***
+
+# 
+
+# **\* One-time payment**
+
+# **\* Non-refundable after activation** 
+
+# 
+
+# **---**
+
+# 
+
+# **## \*\*5.2 Advance DFC (Security Deposit)\*\***
+
+# 
+
+# **### Definition:**
+
+# 
+
+# **```**
+
+# **Advance DFC = DFC Rate × Multiplier**
+
+# **```**
+
+# 
+
+# **### Properties:**
+
+# 
+
+# **\* Stored in membership (logical balance)**
+
+# **\* Locked (not spendable)**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*Allowed Usage ONLY\*\***
+
+# 
+
+# **1. During LAPSING (dues adjustment)**
+
+# **2. During DEATH settlement**
+
+# 
+
+# **❌ NOT allowed:**
+
+# 
+
+# **\* regular DFC payments**
+
+# 
+
+# **✔ Matches invariant** 
+
+# 
+
+# **---**
+
+# 
+
+# **## \*\*5.3 Invoice (Financial Instrument)\*\***
+
+# 
+
+# **Represents \*\*payable financial entry\*\***
+
+# 
+
+# **Types:**
+
+# 
+
+# **```**
+
+# **MEMBERSHIP\_FEE**
+
+# **DFC**
+
+# **ADVANCE\_DFC**
+
+# **ADVANCE\_DFC\_TOPUP**
+
+# **```**
+
+# 
+
+# **---**
+
+# 
+
+# **## ⚠️ IMPORTANT CLARIFICATION**
+
+# 
+
+# **👉 Invoice ≠ Demand**
+
+# **👉 Invoice = payable record**
+
+# **👉 Demand = business event obligation**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*6. DFC DOMAIN (NEWLY FORMALIZED)\*\***
+
+# 
+
+# **---**
+
+# 
+
+# **## \*\*6.1 Demise Event (MISSING → NOW CANON)\*\***
+
+# 
+
+# **### \*\*Demise Event\*\***
+
+# 
+
+# **A verified record of a member’s death.**
+
+# 
+
+# **Triggers:**
+
+# 
+
+# **\* DFC generation**
+
+# **\* Claim workflow**
+
+# 
+
+# **---**
+
+# 
+
+# **## \*\*6.2 DFC Demand (CORE CONCEPT)\*\***
+
+# 
+
+# **A \*\*per-member financial obligation\*\* created after a Demise Event.**
+
+# 
+
+# **### Characteristics:**
+
+# 
+
+# **\* Generated for ALL eligible members**
+
+# **\* Amount based on:**
+
+# 
+
+# &#x20; **\* contributor’s age at event time**
+
+# 
+
+# **✔ As defined in SRS** 
+
+# 
+
+# **---**
+
+# 
+
+# **## \*\*6.3 DFC Contribution Rules\*\***
+
+# 
+
+# **\* Paid per event**
+
+# **\* Age-based slab**
+
+# **\* Stops at:**
+
+# 
+
+# &#x20; **\* age 70**
+
+# &#x20; **\* founding rule limits**
+
+# 
+
+# **---**
+
+# 
+
+# **## \*\*6.4 Relationship Model\*\***
+
+# 
+
+# **```**
+
+# **Demise Event**
+
+# &#x20;  **↓**
+
+# **DFC Demands (per member)**
+
+# &#x20;  **↓**
+
+# **Invoices**
+
+# &#x20;  **↓**
+
+# **Payments**
+
+# **```**
+
+# 
+
+# **👉 THIS is the correct financial flow.**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*7. PAYMENT DOMAIN\*\***
+
+# 
+
+# **### \*\*Payment (payments\_received)\*\***
+
+# 
+
+# **Represents actual money received.**
+
+# 
+
+# **Types:**
+
+# 
+
+# **```**
+
+# **invoice\_payment**
+
+# **adhoc\_payment**
+
+# **```**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*Payment Rules\*\***
+
+# 
+
+# **\* Must map to invoice (recommended strict mode)**
+
+# **\* Idempotency required (same payment should not duplicate)**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*8. NOMINEE DOMAIN\*\***
+
+# 
+
+# **### \*\*Nominee (nesam\_member\_nominees)\*\***
+
+# 
+
+# **Represents beneficiary mapping.**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*Rules\*\***
+
+# 
+
+# **\* Minimum: 1 nominee**
+
+# **\* Maximum: configurable**
+
+# **\* Total share MUST = 100%**
+
+# 
+
+# **✔ Defined in SRS** 
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*Fallback\*\***
+
+# 
+
+# **If nominees unavailable:**
+
+# **→ Legal Heirs receive equal distribution**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*9. CLAIM DOMAIN\*\***
+
+# 
+
+# **### \*\*Claim\*\***
+
+# 
+
+# **A settlement triggered after:**
+
+# 
+
+# **\* valid demise event**
+
+# **\* membership eligibility**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*Eligibility\*\***
+
+# 
+
+# **\* ACTIVE → eligible**
+
+# **\* NOTICE\_PERIOD → eligible (after dues deduction)**
+
+# **\* LAPSED → NOT eligible**
+
+# 
+
+# **✔ Matches byelaws** 
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*Settlement Logic\*\***
+
+# 
+
+# **```**
+
+# **Total DFC Collected**
+
+# &#x20; **- Outstanding dues**
+
+# &#x20; **= Final payout**
+
+# **```**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*10. SYSTEM PARAMETERS\*\***
+
+# 
+
+# **### \*\*system\_parameters\*\***
+
+# 
+
+# **Controls:**
+
+# 
+
+# **\* program activation**
+
+# **\* multipliers**
+
+# **\* founding window**
+
+# **\* thresholds**
+
+# 
+
+# **---**
+
+# 
+
+# **### \*\*Program Activation Rule\*\***
+
+# 
+
+# **\* Minimum members = 100**
+
+# **\* Before activation:**
+
+# 
+
+# &#x20; **\* NO claims allowed**
+
+# 
+
+# **✔ Critical invariant** 
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*11. TIME-BASED LOGIC (IMPORTANT)\*\***
+
+# 
+
+# **### \*\*DFC Payment Window\*\***
+
+# 
+
+# **\* 30 days**
+
+# 
+
+# **### \*\*Notice Period\*\***
+
+# 
+
+# **\* 1 year**
+
+# 
+
+# **### \*\*Grace Period\*\***
+
+# 
+
+# **\* 15 days (implicit, not a status)**
+
+# 
+
+# **---**
+
+# 
+
+# **# \*\*12. EVENT-DRIVEN SYSTEM MODEL\*\***
+
+# 
+
+# **System operates on events:**
+
+# 
+
+# **1. Application Submitted**
+
+# **2. Payment Completed**
+
+# **3. Membership Activated**
+
+# **4. Demise Event Occurs**
+
+# **5. DFC Demand Generated**
+
+# **6. Payments Collected**
+
+# **7. Claim Settled**
+
+# 
+
+# **---**
+
+# 
+
+# **# 🔥 FINAL SUMMARY (READ THIS CAREFULLY)**
+
+# 
+
+# **### What changed from old canon:**
+
+# 
+
+# **✅ Removed invalid status (`IN\_GRACE\_PERIOD`)**
+
+# **✅ Introduced \*\*Demise Event (missing earlier)\*\***
+
+# **✅ Introduced \*\*DFC Demand (CRITICAL FIX)\*\***
+
+# **✅ Clarified \*\*Invoice vs Demand separation\*\***
+
+# **✅ Fixed \*\*Identity model (User vs Alumni)\*\***
+
+# **✅ Formalized \*\*event-driven financial flow\*\***
+
+# 
+
+# **---**
+
+# 
+
+# 
+
+
+
