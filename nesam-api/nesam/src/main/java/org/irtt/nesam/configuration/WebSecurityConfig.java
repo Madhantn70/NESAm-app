@@ -51,7 +51,19 @@ class WebSecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
-                        .anyRequest().permitAll()
+                        .requestMatchers(
+                                "/api/v1/users/register",
+                                "/api/v1/users/ott/**",
+                                "/api/v1/users/test",
+                                "/api/v1/alumni/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.decoder(jwtDecoder()))
                 )
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable());

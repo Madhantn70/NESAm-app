@@ -6,6 +6,9 @@ export interface MemberDashboardSummaryResponse {
   hasPendingDFC: boolean;
   familiesSupported: number;
   hasActiveDFC: boolean;
+  activeDfcCount: number;
+  status: string;
+  membershipPaid: boolean;
   contributionDueDate?: string;
 }
 
@@ -37,4 +40,12 @@ export interface MemberImpactStatsResponse {
   batchImpact: Array<{ id: string, batch: string, families: number }>;
   closedEvents: Array<{ id: string, month: string, events: number, payout: number }>;
   recentSupport: Array<{ id: string, batch: string, year: number, amountRange: string }>;
+}
+
+export interface UserProfileResponse {
+  userUuid: string;
+  mobileNumber: string;
+  fullName: string;
+  email: string;
+  irttaaId: string;
 }

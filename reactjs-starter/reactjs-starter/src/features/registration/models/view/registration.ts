@@ -21,7 +21,7 @@ export enum RegistrationStep {
 
 export interface AlumniViewData {
   name: string;
-  batch: string;
+  batch: number;
   department: string;
   email: string;
   isPatron?: boolean;

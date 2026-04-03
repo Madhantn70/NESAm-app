@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
-import { memberApi } from "../api/memberApi";
-import { MemberDashboardSummaryResponse } from "../models/api/member";
+import { dashboardApi } from "../../../services/dashboardApi";
+import { MemberDashboardSummaryResponse, UserProfileResponse } from "../models/api/member";
 
 export const useMemberDashboardViewModel = () => {
   const [data, setData] = useState<MemberDashboardSummaryResponse | null>(null);
+  const [user, setUser] = useState<UserProfileResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -11,9 +12,16 @@ export const useMemberDashboardViewModel = () => {
     setLoading(true);
     setError(null);
     try {
-      const resp = await memberApi.getDashboardSummary();
-      setData(resp);
+      // Concurrently fetch profile and summary
+      const [profileResp, summaryResp] = await Promise.all([
+        dashboardApi.getUserProfile(),
+        dashboardApi.getDashboardSummary()
+      ]);
+      
+      setUser(profileResp);
+      setData(summaryResp);
     } catch (err: any) {
+      console.error("Dashboard error:", err);
       setError(err?.message || "Failed to load dashboard data");
     } finally {
       setLoading(false);
@@ -22,6 +30,7 @@ export const useMemberDashboardViewModel = () => {
 
   return {
     data,
+    user,
     loading,
     error,
     fetchDashboard

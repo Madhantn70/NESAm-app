@@ -19,7 +19,7 @@ export function MemberImpactCard({ familiesSupported }: MemberImpactCardProps) {
         <div className="flex flex-col gap-2">
           <h2 className="text-foreground text-lg font-semibold">Community Impact</h2>
           <p className="text-foreground leading-relaxed text-sm">
-            Your contributions helped support <span className="font-semibold text-primary">{familiesSupported} families</span>.
+            Your contributions helped support <span className="font-semibold text-primary">{familiesSupported ?? 0} families</span>.
           </p>
         </div>
       </div>

@@ -18,12 +18,17 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register/*" element={<RegistrationPage />} />
-        <Route path="/member" element={<MemberDashboardPage />} />
-        <Route path="/member/active-dfc" element={<MemberActiveDfcPage />} />
-        <Route path="/member/impact" element={<MemberImpactPage />} />
+        
+        {/* Protected Member Routes */}
+        <Route path="/member" element={<ProtectedRoute><MemberDashboardPage /></ProtectedRoute>} />
+        <Route path="/member/active-dfc" element={<ProtectedRoute><MemberActiveDfcPage /></ProtectedRoute>} />
+        <Route path="/member/impact" element={<ProtectedRoute><MemberImpactPage /></ProtectedRoute>} />
+        
+        {/* Other Protected Routes */}
         <Route path="/dashboard" element={<ProtectedRoute><MemberDashboardPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-        {/* Wildcard redirects to exact home match */}
+        
+        {/* Wildcard redirects to home match */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

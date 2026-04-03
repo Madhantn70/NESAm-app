@@ -1,37 +1,29 @@
-import { USE_MOCK } from "../../../constants/config";
-import { mockRegistrationApi } from "../mocks/registrationMock";
 import api from "../../../api/axiosInstance";
 import {
   RegistrationVerifyEmailRequest,
-  RegistrationVerifyEmailResponse,
-  RegistrationVerifyOTPRequest,
-  RegistrationVerifyOTPResponse,
+  AlumniDataResponse,
+  RegistrationOttRequest,
+  RegistrationLoginRequest,
+  AuthResponseData,
   RegistrationSubmitRequest,
-  RegistrationSubmitResponse,
+  RegistrationSubmitResponseData,
+  ApiResponse,
 } from "../models/api/registration";
 
 export const registrationApi = {
-  verifyEmail: async (
-    req: RegistrationVerifyEmailRequest
-  ): Promise<RegistrationVerifyEmailResponse> => {
-    if (USE_MOCK) return mockRegistrationApi.verifyEmail(req);
-    const response = await api.post("/public/registration/verify-email", req);
-    return response.data;
+  verifyEmail: (req: RegistrationVerifyEmailRequest): Promise<ApiResponse<AlumniDataResponse>> => {
+    return api.post("/api/v1/alumni/verify", req) as any;
   },
 
-  verifyOtp: async (
-    req: RegistrationVerifyOTPRequest
-  ): Promise<RegistrationVerifyOTPResponse> => {
-    if (USE_MOCK) return mockRegistrationApi.verifyOtp(req);
-    const response = await api.post("/public/registration/verify-otp", req);
-    return response.data;
+  requestOtt: (req: RegistrationOttRequest): Promise<ApiResponse<any>> => {
+    return api.post("/api/v1/users/ott/token", req) as any;
   },
 
-  submitDetails: async (
-    req: RegistrationSubmitRequest
-  ): Promise<RegistrationSubmitResponse> => {
-    if (USE_MOCK) return mockRegistrationApi.submitDetails(req);
-    const response = await api.post("/public/registration/submit", req);
-    return response.data;
+  loginWithOtt: (req: RegistrationLoginRequest): Promise<ApiResponse<AuthResponseData>> => {
+    return api.post("/api/v1/users/ott/login", req) as any;
+  },
+
+  submitDetails: (req: RegistrationSubmitRequest): Promise<ApiResponse<RegistrationSubmitResponseData>> => {
+    return api.post("/api/v1/users/register", req) as any;
   },
 };

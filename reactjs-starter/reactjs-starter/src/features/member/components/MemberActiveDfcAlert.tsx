@@ -4,10 +4,11 @@ import { useNavigate } from "react-router-dom";
 
 interface MemberActiveDfcAlertProps {
   hasActiveDFC: boolean;
+  activeDfcCount: number;
   contributionDueDate?: string;
 }
 
-export function MemberActiveDfcAlert({ hasActiveDFC, contributionDueDate }: MemberActiveDfcAlertProps) {
+export function MemberActiveDfcAlert({ hasActiveDFC, activeDfcCount, contributionDueDate }: MemberActiveDfcAlertProps) {
   const navigate = useNavigate();
 
   if (!hasActiveDFC) return null;
@@ -35,7 +36,7 @@ export function MemberActiveDfcAlert({ hasActiveDFC, contributionDueDate }: Memb
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-foreground font-medium">DFC Request</span>
               <span className="px-2 py-1 bg-accent-foreground/10 text-accent-foreground rounded-md border border-accent-foreground/30 text-sm font-medium">
-                1 Active
+                {activeDfcCount ?? 0} Active
               </span>
             </div>
             <span className="text-sm text-muted-foreground">

@@ -80,12 +80,33 @@ export function RegistrationPage() {
       <Header />
       {showStepper && <ProgressStepper currentStep={stepperIndex} />}
 
-      <main className="flex-1 w-full max-w-md mx-auto px-4 py-8 flex flex-col items-center">
+      <main className="flex-1 w-full max-w-md mx-auto px-4 py-8 flex flex-col items-center relative">
+        {/* Toast Notifications */}
+        {(vm.successStatus || vm.error) && (
+          <div 
+            className={`fixed top-20 right-4 z-50 p-4 rounded-xl shadow-2xl border flex items-center gap-3 animate-in slide-in-from-right duration-300 ${
+              vm.error ? "bg-red-50 border-red-200 text-red-800" : "bg-teal-50 border-teal-200 text-teal-800"
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${vm.error ? "bg-red-500" : "bg-teal-500"}`} />
+            <span className="text-sm font-medium">{vm.error || vm.successStatus}</span>
+            <button 
+              onClick={() => {
+                vm.setError(null);
+                vm.clearSuccess();
+              }}
+              className="ml-2 hover:opacity-70 text-lg leading-none"
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
         {vm.step === RegistrationStep.ENTER_EMAIL && (
           <RegistrationEnterEmail
             email={vm.formData.email}
             updateEmail={(val) => vm.updateFormData("email", val)}
-            onVerify={vm.handleVerifyEmail}
+            onVerify={vm.handleVerify}
             loading={vm.loading}
             error={vm.error}
           />

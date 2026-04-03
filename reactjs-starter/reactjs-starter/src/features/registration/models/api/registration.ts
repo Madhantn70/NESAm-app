@@ -1,19 +1,21 @@
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  errors: string[] | null;
+}
+
 export interface RegistrationVerifyEmailRequest {
   email: string;
 }
 
 export interface AlumniDataResponse {
   name: string;
-  batch: string;
+  batch: number;
   department: string;
   email: string;
   isPatron?: boolean;
   isFounding?: boolean;
-}
-
-export interface RegistrationVerifyEmailResponse {
-  status: "verified" | "not_found" | "pending" | "resume";
-  alumniData?: AlumniDataResponse;
 }
 
 export interface RegistrationVerifyOTPRequest {
@@ -21,8 +23,17 @@ export interface RegistrationVerifyOTPRequest {
   otp: string;
 }
 
-export interface RegistrationVerifyOTPResponse {
-  success: boolean;
+export interface RegistrationOttRequest {
+  mobile: string;
+}
+
+export interface RegistrationLoginRequest {
+  token: string;
+}
+
+export interface AuthResponseData {
+  accessToken: string;
+  refreshToken: string;
 }
 
 export interface RegistrationSubmitRequest {
@@ -48,7 +59,6 @@ export interface RegistrationSubmitRequest {
   membershipType: string;
 }
 
-export interface RegistrationSubmitResponse {
-  success: boolean;
+export interface RegistrationSubmitResponseData {
   registrationId: string;
 }
