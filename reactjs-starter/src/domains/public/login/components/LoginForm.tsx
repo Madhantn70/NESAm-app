@@ -1,92 +1,57 @@
-import React from "react";
-import { InputField } from "@/shared/components/shared/InputField";
-import { Button } from "@/shared/components/shared/Button";
-import { useLoginViewModel } from "@/domains/public/login/viewModels/useLoginViewModel";
-import { LoginStep } from "@/shared/constants/auth";
-import { OTPInput } from "@/shared/components/shared/OTPInput";
-import { useNavigate } from "react-router-dom";
+import React from 'react';
 
-export function LoginForm() {
-  const { email, setEmail, otp, setOtp, step, loading, error, handleSendOTP, handleVerifyOTP } = useLoginViewModel();
-  const navigate = useNavigate();
+type LoginFormProps = {
+  formData: any;
+  errors: Record<string, string>;
+  isLoading: boolean;
+  handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleSubmit: (e: React.FormEvent) => void;
+};
 
-  const onVerify = async () => {
-    const state = await handleVerifyOTP();
-    if (state?.isAuthenticated) {
-      navigate("/member");
-    }
-  };
-
+export const LoginForm: React.FC<LoginFormProps> = ({
+  formData,
+  errors,
+  isLoading,
+  handleChange,
+  handleSubmit
+}) => {
   return (
-    <div className="w-full bg-white rounded-2xl shadow-md p-6 md:p-8 space-y-5">
-      {step === LoginStep.ENTER_EMAIL ? (
-        <>
-          <h1 className="text-2xl font-semibold text-center text-gray-900">
-            Login to NESAm
-          </h1>
-          
-          <div className="space-y-5">
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-900">
-                Email Address
-              </label>
-              <InputField
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-              />
-              <p className="text-xs text-gray-500">
-                Use the email registered with your Alumni Association.
-              </p>
-              {error && <p className="text-xs text-red-500">{error}</p>}
-            </div>
+    <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto p-4 border rounded">
+      <h2 className="text-xl font-bold mb-4">Login</h2>
+      
+      {errors.form && <div className="text-red-500 mb-2">{errors.form}</div>}
+      
+      <div>
+        <label className="block mb-1">Email</label>
+        <input 
+          type="email" 
+          name="email" 
+          value={formData.email} 
+          onChange={handleChange} 
+          className="w-full border p-2 rounded" 
+        />
+        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+      </div>
 
-            <Button
-              onClick={handleSendOTP}
-              disabled={!email.includes("@") || !email.includes(".") || loading}
-            >
-              {loading ? "Sending..." : "Send OTP"}
-            </Button>
-          </div>
-        </>
-      ) : (
-        <>
-          <h1 className="text-2xl font-semibold text-center text-gray-900">
-            Enter OTP
-          </h1>
-          <p className="text-xs text-gray-500 text-center">
-            Sent to {email}
-          </p>
-          
-          <div className="space-y-5">
-            <div className="space-y-2 flex flex-col items-center">
-              <label htmlFor="otp" className="block text-sm font-medium text-gray-900 self-start">
-                6-Digit OTP
-              </label>
-              <OTPInput
-                maxLength={6}
-                value={otp}
-                onChange={(value) => setOtp(value)}
-              />
-              {error && <p className="text-xs text-red-500 self-start">{error}</p>}
-            </div>
+      <div>
+        <label className="block mb-1">Password</label>
+        <input 
+          type="password" 
+          name="password" 
+          value={formData.password} 
+          onChange={handleChange} 
+          className="w-full border p-2 rounded" 
+        />
+        {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+      </div>
 
-            <Button
-              onClick={onVerify}
-              disabled={otp.length !== 6 || loading}
-            >
-              {loading ? "Verifying..." : "Verify OTP"}
-            </Button>
-          </div>
-        </>
-      )}
-
-      <p className="text-xs text-gray-400 text-center mt-6">
-        By continuing, you agree to NESAm terms
-      </p>
-    </div>
+      <button 
+        type="submit" 
+        disabled={isLoading} 
+        className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
+      >
+        {isLoading ? 'Loading...' : 'Login'}
+      </button>
+    </form>
   );
-}
+};
