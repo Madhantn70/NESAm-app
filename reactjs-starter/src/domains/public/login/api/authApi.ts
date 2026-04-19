@@ -1,4 +1,4 @@
-import { axiosClient } from '../../../../../core/api/axiosClient';
+import { axiosClient } from '../../../../core/api/axiosClient';
 import { LoginRequest, LoginResponse } from '../model/Auth';
 
 export const loginUser = async (data: LoginRequest): Promise<LoginResponse> => {

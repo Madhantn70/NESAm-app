@@ -4,10 +4,23 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>nesam-ui-app</title>
+    <!-- Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <title>NESAm</title>
   </head>
   <body>
+    <script>
+      window.onerror = function(msg, url, lineNo, columnNo, error) {
+        document.body.innerHTML += '<div style="color:red; background:white; position:fixed; top:0; left:0; z-index:9999; padding:20px; font-size:12px; font-family:monospace; white-space:pre-wrap;">GLOBAL ERROR: ' + msg + '\n' + (error ? error.stack : '') + '</div>';
+        return false;
+      };
+      window.addEventListener('unhandledrejection', function(event) {
+        document.body.innerHTML += '<div style="color:red; background:white; position:fixed; top:0; left:0; z-index:9999; padding:20px; font-size:12px; font-family:monospace; white-space:pre-wrap;">PROMISE REJECTION: ' + event.reason + '</div>';
+      });
+    </script>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

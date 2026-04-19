@@ -6,9 +6,14 @@ import RegistrationPage from '../../domains/public/registration/pages/Registrati
 import LoginPage from '../../domains/public/login/pages/LoginPage';
 
 // Member Stubs
-import MemberHomePage from '../../domains/member/home/pages/MemberHomePage';
+import MemberDashboardPage from '../../domains/member/dashboard/ui/pages/MemberDashboardPage';
 import MemberContributionsPage from '../../domains/member/contributions/pages/MemberContributionsPage';
 import MemberImpactPage from '../../domains/member/impact/pages/MemberImpactPage';
+import MemberWalletPage from '../../domains/member/wallet/ui/pages/MemberWalletPage';
+import MemberActiveDfcPage from '../../domains/member/active-dfc/ui/pages/MemberActiveDfcPage';
+import MemberNotificationsPage from '../../domains/member/notifications/ui/pages/MemberNotificationsPage';
+import MemberProfilePage from '../../domains/member/profile/ui/pages/MemberProfilePage';
+import MemberEditProfilePage from '../../domains/member/profile-edit/ui/pages/MemberEditProfilePage';
 
 // Admin Stubs
 import AdminDashboardPage from '../../domains/admin/dashboard/pages/AdminDashboardPage';
@@ -38,9 +43,14 @@ export const AppRouter = () => {
 
       {/* Member Routes */}
       <Route element={<ProtectedRoute allowedRoles={['MEMBER']} />}>
-        <Route path="/member/home" element={<MemberHomePage />} />
+        <Route path="/member/home" element={<MemberDashboardPage />} />
         <Route path="/member/contributions" element={<MemberContributionsPage />} />
         <Route path="/member/impact" element={<MemberImpactPage />} />
+        <Route path="/member/wallet" element={<MemberWalletPage />} />
+        <Route path="/member/active-dfc" element={<MemberActiveDfcPage />} />
+        <Route path="/member/notifications" element={<MemberNotificationsPage />} />
+        <Route path="/member/profile" element={<MemberProfilePage />} />
+        <Route path="/member/profile/edit" element={<MemberEditProfilePage />} />
       </Route>
 
       {/* Admin Routes */}
