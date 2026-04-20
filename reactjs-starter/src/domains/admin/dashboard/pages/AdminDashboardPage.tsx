@@ -2,12 +2,14 @@ import React from 'react';
 import { useAdminDashboard } from '../viewModel/useAdminDashboard';
 import { AdminDashboardView } from '../components/AdminDashboardView';
 
-export default function AdminDashboardPage() {
-  const viewModel = useAdminDashboard();
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">AdminDashboard</h1>
-      <AdminDashboardView {...viewModel} />
-    </div>
-  );
-}
+export const AdminDashboardPage: React.FC = () => {
+  const { data, isLoading } = useAdminDashboard();
+
+  if (isLoading || !data) {
+    return <div className="p-4 text-center">Loading...</div>;
+  }
+
+  return <AdminDashboardView data={data} />;
+};
+
+export default AdminDashboardPage;
