@@ -17,6 +17,7 @@ import MemberEditProfilePage from '../../domains/member/profile-edit/ui/pages/Me
 
 // Admin Stubs
 import AdminDashboardPage from '../../domains/admin/dashboard/pages/AdminDashboardPage';
+import CreateDFCPage from '../../domains/admin/create-dfc/pages/CreateDFCPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: string[] }) => {
   const { isAuthenticated, user } = useAuth();
@@ -40,6 +41,7 @@ export const AppRouter = () => {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegistrationPage />} />
+      <Route path="/admin/create-dfc" element={<CreateDFCPage />} />
 
       {/* Member Routes */}
       <Route element={<ProtectedRoute allowedRoles={['MEMBER']} />}>
