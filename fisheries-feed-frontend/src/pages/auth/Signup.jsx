@@ -40,7 +40,7 @@ export function Signup() {
     try {
       await authService.signup({ username, email, password });
       toast.success("Account created! You can now sign in.");
-      navigate('/');
+      navigate('/login');
     } catch (err) {
       const errMsg = err.response?.data?.error || "Registration failed";
       toast.error(errMsg);
@@ -103,8 +103,13 @@ export function Signup() {
             </form>
             <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
               Already have an account?{' '}
-              <Link to="/" className="font-medium text-blue-600 dark:text-blue-400 hover:underline">
+              <Link to="/login" className="font-medium text-blue-600 dark:text-blue-400 hover:underline">
                 Sign in
+              </Link>
+            </div>
+            <div className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+              <Link to="/" className="font-medium text-slate-500 dark:text-slate-400 hover:underline text-xs">
+                ← Back to Home
               </Link>
             </div>
           </CardContent>

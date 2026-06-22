@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { Login } from './pages/auth/Login';
 import { Signup } from './pages/auth/Signup';
+import { LandingPage } from './pages/landing/LandingPage';
 import { Dashboard } from './pages/dashboard/Dashboard';
 import { AddStock } from './pages/stock/AddStock';
 import { FeedEntry } from './pages/feed/FeedEntry';
@@ -16,6 +17,7 @@ import { AuditTrail } from './pages/audit/AuditTrail';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { PublicRoute } from './components/auth/PublicRoute';
 import { RoleGuard } from './components/auth/RoleGuard';
 
 function App() {
@@ -24,10 +26,13 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            {/* Public Auth Routes */}
-            <Route path="/" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            
+            {/* Public Routes — redirect to /dashboard if already authenticated */}
+            <Route element={<PublicRoute />}>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+            </Route>
+
             {/* Protected Application Routes */}
             <Route element={<ProtectedRoute />}>
               <Route element={<MainLayout />}>

@@ -162,6 +162,11 @@ export function Login() {
                 Sign up
               </Link>
             </div>
+            <div className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+              <Link to="/" className="font-medium text-slate-500 dark:text-slate-400 hover:underline text-xs">
+                ← Back to Home
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>

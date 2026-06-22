@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
 import { authService } from '../services/api';
 
 const AuthContext = createContext();
@@ -18,17 +17,8 @@ export function AuthProvider({ children }) {
       }
       
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const res = await axios.get(`${apiUrl}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        if (res.data?.data) {
-          setUser(res.data.data);
-        } else {
-          // fallback
-          setUser(res.data);
-        }
+        const userData = await authService.getMe();
+        setUser(userData);
       } catch (err) {
         console.error("Session verification failed", err);
         localStorage.removeItem('token');
