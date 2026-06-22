@@ -1,163 +1,20 @@
 @import "tailwindcss";
 
-:root {
-  /* Typography scale - larger sizes for elder-friendly readability */
-  --font-size: 18px; /* Base font increased from 16px to 18px */
-  --text-xs: 0.875rem; /* 15.75px */
-  --text-sm: 1rem; /* 18px */
-  --text-base: 1.125rem; /* 20.25px */
-  --text-lg: 1.25rem; /* 22.5px */
-  --text-xl: 1.5rem; /* 27px */
-  --text-2xl: 2rem; /* 36px */
-  --text-3xl: 2.5rem; /* 45px */
-  
-  /* Font weights - minimal variation for clarity */
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  
-  /* Line heights - generous spacing for readability */
-  --leading-relaxed: 1.625;
-  --leading-normal: 1.5;
-  --leading-snug: 1.375;
-  
-  /* Spacing scale - generous touch targets and breathing room */
-  --spacing-xs: 0.5rem; /* 9px */
-  --spacing-sm: 0.75rem; /* 13.5px */
-  --spacing-md: 1rem; /* 18px */
-  --spacing-lg: 1.5rem; /* 27px */
-  --spacing-xl: 2rem; /* 36px */
-  --spacing-2xl: 3rem; /* 54px */
-  --spacing-3xl: 4rem; /* 72px */
-  
-  /* Minimum touch target size (48px recommended for accessibility) */
-  --min-touch-target: 3rem; /* 54px - generous for elder users */
-  
-  /* Color palette - calm, neutral, trustworthy */
-  --background: #faf9f7; /* Light warm background for calm atmosphere */
-  --foreground: #1a1a1a; /* Softer black for less strain */
-  --card: #ffffff;
-  --card-foreground: #1a1a1a;
-  --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
-  
-  /* Primary - deep teal for trust, calm, and professionalism */
-  --primary: #0a5f5f; /* Deeper teal with more depth */
-  --primary-foreground: #ffffff;
-  
-  /* Secondary - soft warm amber for highlights and warmth */
-  --secondary: #f0a868; /* Warm peachy-amber for community feel */
-  --secondary-foreground: #2c1810;
-  
-  /* Muted - very light warm grey for backgrounds */
-  --muted: #f3f2f0;
-  --muted-foreground: #6b7280;
-  
-  /* Accent - soft warm tone for alerts and highlights */
-  --accent: #fff4e6; /* Soft warm cream for gentle alerts */
-  --accent-foreground: #d97a3d; /* Warm orange-brown for accent text */
-  
-  /* Destructive/Warning - warm alert color */
-  --destructive: #d97a3d; /* Warm orange for alerts (less aggressive) */
-  --destructive-foreground: #ffffff;
-  
-  /* Success - refreshing teal-green for positive feedback */
-  --success: #4a9b7f;
-  --success-foreground: #ffffff;
-  
-  /* Borders and inputs */
-  --border: #e0ddd8;
-  --input: transparent;
-  --input-background: #fafaf9;
-  --switch-background: #d1d5db;
-  --ring: #0a5f5f;
-  
-  /* Border radius - gentle, consistent rounded corners */
-  --radius: 0.75rem; /* 13.5px - more pronounced rounded corners */
+@theme {
+  --font-sans: 'Inter', sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-input-background: var(--input-background);
-  --color-ring: var(--ring);
-  --radius-lg: var(--radius);
+*, *::before, *::after {
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
 }
 
-@layer base {
-  * {
-    border-color: var(--border);
-  }
-  body {
-    background-color: var(--background);
-    color: var(--foreground);
-    margin: 0;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-  html {
-    font-size: var(--font-size);
-  }
-
-  h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  h4 {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  p {
-    margin: 0;
-  }
-
-  label {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  button {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  input {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-normal);
-    line-height: 1.5;
-  }
+h1, h2, h3, h4, h5, h6, p, span, a, button, input, select, textarea, label {
+  font-family: 'Inter', sans-serif;
 }

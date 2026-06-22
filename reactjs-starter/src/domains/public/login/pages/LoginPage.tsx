@@ -1,17 +1,15 @@
-import React from "react";
-import { Header } from "@/shared/components/shared/Header";
-import { LoginForm } from "@/domains/public/login/components/LoginForm";
+import React from 'react';
+import { useLoginForm } from '../viewModel/useLoginForm';
+import { LoginForm } from '../components/LoginForm';
 
-export function LoginPage() {
+export default function LoginPage() {
+  const viewModel = useLoginForm();
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
-      
-      <main className="flex-1 flex flex-col items-center justify-center p-4 py-12">
-        <div className="w-full max-w-[400px]">
-          <LoginForm />
-        </div>
-      </main>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+        <LoginForm {...viewModel} />
+      </div>
     </div>
   );
 }
